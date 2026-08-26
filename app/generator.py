@@ -2,11 +2,14 @@ import secrets
 import string
 
 from app.config import PasswordConfig, PasswordMode
-from app.wordlist import load_words
+from app.wordlist import load_words, load_wordlist
 
 
 def generate_human_password(config: PasswordConfig) -> str:
-    words = load_words()
+    if config.wordlist_path:
+        words = load_wordlist(config.wordlist_path)
+    else:
+        words = load_words()
 
     selected_words = [
         secrets.choice(words).capitalize()

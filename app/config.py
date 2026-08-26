@@ -17,4 +17,4 @@ class PasswordConfig:
     special: bool = True
     words: int = 3
     separator: str = "-"
-    language = "pl"
+    wordlist_path: str | None = None
