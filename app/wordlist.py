@@ -5,7 +5,13 @@ WORDS_FILE = Path(__file__).parent.parent / "data" / "words.txt"
 
 
 def load_words() -> list[str]:
-    with WORDS_FILE.open("r", encoding="utf-8") as file:
+    return load_wordlist(WORDS_FILE)
+
+
+def load_wordlist(path: str | Path) -> list[str]:
+    path = Path(path)
+
+    with path.open("r", encoding="utf-8") as file:
         return [
             line.strip()
             for line in file
