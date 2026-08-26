@@ -4,6 +4,7 @@ import string
 from app.config import PasswordConfig, PasswordMode
 from app.wordlist import load_words, load_wordlist
 
+SEPARATORS = ["-", "_", ".", " ", "/", "|"]
 
 def generate_human_password(config: PasswordConfig) -> str:
     if config.wordlist_path:
@@ -16,7 +17,12 @@ def generate_human_password(config: PasswordConfig) -> str:
         for _ in range(config.words)
     ]
 
-    password = config.separator.join(selected_words)
+
+    separator = config.separator
+
+    if separator == "Random":
+        separator = secrets.choice(SEPARATORS)
+    password = separator.join(selected_words)
 
     if config.numbers:
         password += str(secrets.randbelow(100))
