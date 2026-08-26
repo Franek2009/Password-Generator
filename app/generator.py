@@ -2,9 +2,11 @@ import secrets
 import string
 
 from app.config import PasswordConfig, PasswordMode
-from app.wordlist import load_words, load_wordlist
+from app.wordlist import load_wordlist, load_words
 
-SEPARATORS = ["-", "_", ".", " ", "/", "|"]
+
+RANDOM_SEPARATORS = ["-", "_", ".", " ", "/", "|"]
+
 
 def generate_human_password(config: PasswordConfig) -> str:
     if config.wordlist_path:
@@ -12,16 +14,19 @@ def generate_human_password(config: PasswordConfig) -> str:
     else:
         words = load_words()
 
+    if not words:
+        raise ValueError("Word list cannot be empty.")
+
     selected_words = [
         secrets.choice(words).capitalize()
         for _ in range(config.words)
     ]
 
+    if config.separator == "Random":
+        separator = secrets.choice(RANDOM_SEPARATORS)
+    else:
+        separator = config.separator
 
-    separator = config.separator
-
-    if separator == "Random":
-        separator = secrets.choice(SEPARATORS)
     password = separator.join(selected_words)
 
     if config.numbers:
@@ -49,7 +54,9 @@ def generate_manager_password(config: PasswordConfig) -> str:
         character_sets.append(string.punctuation)
 
     if not character_sets:
-        raise ValueError("At least one character set must be enabled.")
+        raise ValueError(
+            "At least one character set must be enabled."
+        )
 
     if config.length < len(character_sets):
         raise ValueError(
