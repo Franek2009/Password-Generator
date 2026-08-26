@@ -13,5 +13,5 @@ The list is based on an earlier Polish Diceware list
 created by Piotr "DrFugazi" Tarnowski and was substantially
 modified by Maciek Talaska.
 
-This project converts the source word list to JSON and uses
-it for human-readable password generation.
+This project uses the source word list for human-readable
+password generation.
