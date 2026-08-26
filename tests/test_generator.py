@@ -1,23 +1,26 @@
+import string
+
 import pytest
 
 from app.config import PasswordConfig, PasswordMode
-from app.generator import generate_password
+from app.generator import (
+    RANDOM_SEPARATORS,
+    generate_human_password,
+    generate_manager_password,
+    generate_password,
+)
 
 
 def test_manager_password_has_correct_length():
-    config = PasswordConfig(
-        mode=PasswordMode.MANAGER,
-        length=32,
-    )
+    config = PasswordConfig(length=32)
 
-    password = generate_password(config)
+    password = generate_manager_password(config)
 
     assert len(password) == 32
 
 
 def test_manager_password_contains_selected_character_sets():
     config = PasswordConfig(
-        mode=PasswordMode.MANAGER,
         length=32,
         uppercase=True,
         lowercase=True,
@@ -25,55 +28,131 @@ def test_manager_password_contains_selected_character_sets():
         special=True,
     )
 
-    password = generate_password(config)
+    password = generate_manager_password(config)
 
-    assert any(char.isupper() for char in password)
-    assert any(char.islower() for char in password)
-    assert any(char.isdigit() for char in password)
+    assert any(char in string.ascii_uppercase for char in password)
+    assert any(char in string.ascii_lowercase for char in password)
+    assert any(char in string.digits for char in password)
+    assert any(char in string.punctuation for char in password)
 
 
-def test_manager_password_raises_when_no_character_set_is_selected():
+def test_manager_password_lowercase_only():
     config = PasswordConfig(
-        mode=PasswordMode.MANAGER,
         length=20,
+        uppercase=False,
+        lowercase=True,
+        numbers=False,
+        special=False,
+    )
+
+    password = generate_manager_password(config)
+
+    assert len(password) == 20
+    assert all(char in string.ascii_lowercase for char in password)
+
+
+def test_manager_password_uppercase_only():
+    config = PasswordConfig(
+        length=20,
+        uppercase=True,
+        lowercase=False,
+        numbers=False,
+        special=False,
+    )
+
+    password = generate_manager_password(config)
+
+    assert len(password) == 20
+    assert all(char in string.ascii_uppercase for char in password)
+
+
+def test_manager_password_numbers_only():
+    config = PasswordConfig(
+        length=20,
+        uppercase=False,
+        lowercase=False,
+        numbers=True,
+        special=False,
+    )
+
+    password = generate_manager_password(config)
+
+    assert len(password) == 20
+    assert all(char in string.digits for char in password)
+
+
+def test_manager_password_special_only():
+    config = PasswordConfig(
+        length=20,
+        uppercase=False,
+        lowercase=False,
+        numbers=False,
+        special=True,
+    )
+
+    password = generate_manager_password(config)
+
+    assert len(password) == 20
+    assert all(char in string.punctuation for char in password)
+
+
+def test_manager_password_rejects_no_character_sets():
+    config = PasswordConfig(
         uppercase=False,
         lowercase=False,
         numbers=False,
         special=False,
     )
 
-    with pytest.raises(ValueError):
-        generate_password(config)
+    with pytest.raises(ValueError, match="At least one character set"):
+        generate_manager_password(config)
 
 
-def test_manager_password_raises_when_length_is_too_short():
+def test_manager_password_rejects_too_short_length():
     config = PasswordConfig(
-        mode=PasswordMode.MANAGER,
-        length=2,
+        length=3,
         uppercase=True,
         lowercase=True,
         numbers=True,
         special=True,
     )
 
-    with pytest.raises(ValueError):
-        generate_password(config)
+    with pytest.raises(
+        ValueError,
+        match="Password length is too short",
+    ):
+        generate_manager_password(config)
 
 
-def test_human_password_contains_correct_number_of_words():
+def test_manager_password_exact_minimum_length():
+    config = PasswordConfig(
+        length=4,
+        uppercase=True,
+        lowercase=True,
+        numbers=True,
+        special=True,
+    )
+
+    password = generate_manager_password(config)
+
+    assert len(password) == 4
+    assert any(char in string.ascii_uppercase for char in password)
+    assert any(char in string.ascii_lowercase for char in password)
+    assert any(char in string.digits for char in password)
+    assert any(char in string.punctuation for char in password)
+
+
+def test_human_password_has_correct_number_of_words():
     config = PasswordConfig(
         mode=PasswordMode.HUMAN,
-        words=4,
-        separator="-",
+        words=5,
         numbers=False,
         special=False,
     )
 
-    password = generate_password(config)
+    password = generate_human_password(config)
 
-    words = password.split("-")
-
-    assert len(words) == 4
+    assert len(password.split(config.separator)) == 5
 
 
 def test_human_password_uses_selected_separator():
@@ -85,44 +164,78 @@ def test_human_password_uses_selected_separator():
         special=False,
     )
 
-    password = generate_password(config)
+    password = generate_human_password(config)
 
     assert "_" in password
     assert "-" not in password
 
 
-def test_human_password_can_add_numbers_and_special_characters():
+def test_human_password_random_separator_is_consistent():
+    config = PasswordConfig(
+        mode=PasswordMode.HUMAN,
+        words=6,
+        separator="Random",
+        numbers=False,
+        special=False,
+    )
+
+    password = generate_human_password(config)
+
+    separators = [
+        char
+        for char in password
+        if char in RANDOM_SEPARATORS
+    ]
+
+    assert separators
+    assert len(set(separators)) == 1
+
+
+def test_human_password_can_include_numbers():
     config = PasswordConfig(
         mode=PasswordMode.HUMAN,
         words=3,
-        separator="-",
         numbers=True,
+        special=False,
+    )
+
+    password = generate_human_password(config)
+
+    assert any(char in string.digits for char in password)
+
+
+def test_human_password_can_include_special_characters():
+    config = PasswordConfig(
+        mode=PasswordMode.HUMAN,
+        words=3,
+        numbers=False,
         special=True,
+    )
+
+    password = generate_human_password(config)
+
+    assert any(char in string.punctuation for char in password)
+
+
+def test_generate_password_uses_manager_mode():
+    config = PasswordConfig(
+        mode=PasswordMode.MANAGER,
+        length=20,
     )
 
     password = generate_password(config)
 
-    assert any(char.isdigit() for char in password)
+    assert len(password) == 20
 
 
-def test_human_password_with_random_separator():
+def test_generate_password_uses_human_mode():
     config = PasswordConfig(
         mode=PasswordMode.HUMAN,
-        words=4,
-        separator="Random",
+        words=3,
         numbers=False,
         special=False,
     )
 
     password = generate_password(config)
 
-    allowed_separators = {"-", "_", ".", " ", "/", "|"}
-
-    separators = [
-        char
-        for char in password
-        if char in allowed_separators
-    ]
-
-    assert len(separators) == 3
-    assert len(set(separators)) == 1
+    assert len(password.split(config.separator)) == 3
