@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QFileDialog,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -23,7 +24,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("Password Generator")
-        self.resize(520, 460)
+        self.resize(560, 560)
 
         self.custom_wordlist_path = None
 
@@ -31,10 +32,13 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central_widget)
 
         main_layout = QVBoxLayout(central_widget)
-        main_layout.setContentsMargins(30, 25, 30, 25)
-        main_layout.setSpacing(16)
+        main_layout.setContentsMargins(32, 28, 32, 28)
+        main_layout.setSpacing(20)
 
-        # Title
+        # ---------------------------------------------------------
+        # Header
+        # ---------------------------------------------------------
+
         title = QLabel("Password Generator")
         title.setObjectName("title")
 
@@ -44,42 +48,66 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(title)
         main_layout.addWidget(subtitle)
 
+        # ---------------------------------------------------------
         # Mode
-        mode_layout = QHBoxLayout()
+        # ---------------------------------------------------------
 
-        mode_label = QLabel("Mode")
+        mode_label = QLabel("MODE")
+        mode_label.setObjectName("section_label")
+
         self.mode_combo = QComboBox()
-        self.mode_combo.addItem("Password Manager", PasswordMode.MANAGER)
-        self.mode_combo.addItem("Human", PasswordMode.HUMAN)
+        self.mode_combo.addItem(
+            "Password Manager",
+            PasswordMode.MANAGER,
+        )
+        self.mode_combo.addItem(
+            "Human",
+            PasswordMode.HUMAN,
+        )
 
-        mode_layout.addWidget(mode_label)
-        mode_layout.addStretch()
-        mode_layout.addWidget(self.mode_combo)
+        main_layout.addWidget(mode_label)
+        main_layout.addWidget(self.mode_combo)
 
-        main_layout.addLayout(mode_layout)
-
+        # ---------------------------------------------------------
         # Manager settings
+        # ---------------------------------------------------------
+
         self.manager_settings = QWidget()
         manager_layout = QVBoxLayout(self.manager_settings)
         manager_layout.setContentsMargins(0, 0, 0, 0)
-        manager_layout.setSpacing(10)
+        manager_layout.setSpacing(14)
 
+        # Length header
         length_header = QHBoxLayout()
 
         length_label = QLabel("Length")
+
         self.length_value = QLabel("20")
+        self.length_value.setObjectName("value_label")
 
         length_header.addWidget(length_label)
         length_header.addStretch()
         length_header.addWidget(self.length_value)
 
+        manager_layout.addLayout(length_header)
+
+        # Length slider
         self.length_slider = QSlider(Qt.Horizontal)
         self.length_slider.setMinimum(8)
         self.length_slider.setMaximum(64)
         self.length_slider.setValue(20)
 
-        manager_layout.addLayout(length_header)
         manager_layout.addWidget(self.length_slider)
+
+        # Character sets
+        character_label = QLabel("Character set")
+        character_label.setObjectName("subsection_label")
+
+        manager_layout.addWidget(character_label)
+
+        character_grid = QGridLayout()
+        character_grid.setHorizontalSpacing(30)
+        character_grid.setVerticalSpacing(10)
 
         self.uppercase_checkbox = QCheckBox("Uppercase")
         self.uppercase_checkbox.setChecked(True)
@@ -93,42 +121,77 @@ class MainWindow(QMainWindow):
         self.special_checkbox = QCheckBox("Special characters")
         self.special_checkbox.setChecked(True)
 
-        manager_layout.addWidget(self.uppercase_checkbox)
-        manager_layout.addWidget(self.lowercase_checkbox)
-        manager_layout.addWidget(self.numbers_checkbox)
-        manager_layout.addWidget(self.special_checkbox)
+        character_grid.addWidget(
+            self.uppercase_checkbox,
+            0,
+            0,
+        )
+        character_grid.addWidget(
+            self.lowercase_checkbox,
+            0,
+            1,
+        )
+        character_grid.addWidget(
+            self.numbers_checkbox,
+            1,
+            0,
+        )
+        character_grid.addWidget(
+            self.special_checkbox,
+            1,
+            1,
+        )
+
+        manager_layout.addLayout(character_grid)
 
         main_layout.addWidget(self.manager_settings)
 
+        # ---------------------------------------------------------
         # Human settings
+        # ---------------------------------------------------------
+
         self.human_settings = QWidget()
         human_layout = QVBoxLayout(self.human_settings)
         human_layout.setContentsMargins(0, 0, 0, 0)
-        human_layout.setSpacing(10)
+        human_layout.setSpacing(14)
 
+        # Words
         words_header = QHBoxLayout()
 
         words_label = QLabel("Words")
+
         self.words_value = QLabel("3")
+        self.words_value.setObjectName("value_label")
 
         words_header.addWidget(words_label)
         words_header.addStretch()
         words_header.addWidget(self.words_value)
+
+        human_layout.addLayout(words_header)
 
         self.words_slider = QSlider(Qt.Horizontal)
         self.words_slider.setMinimum(2)
         self.words_slider.setMaximum(8)
         self.words_slider.setValue(3)
 
-        human_layout.addLayout(words_header)
         human_layout.addWidget(self.words_slider)
 
+        # Separator
         separator_layout = QHBoxLayout()
 
         separator_label = QLabel("Separator")
+
         self.separator_combo = QComboBox()
         self.separator_combo.addItems(
-            ["-", "_", ".", " ", "/", "|", "Random"]
+            [
+                "-",
+                "_",
+                ".",
+                " ",
+                "/",
+                "|",
+                "Random",
+            ]
         )
 
         separator_layout.addWidget(separator_label)
@@ -137,9 +200,11 @@ class MainWindow(QMainWindow):
 
         human_layout.addLayout(separator_layout)
 
+        # Word list
         wordlist_layout = QHBoxLayout()
 
         wordlist_label = QLabel("Word list")
+
         self.wordlist_combo = QComboBox()
         self.wordlist_combo.addItem("Built-in Polish")
         self.wordlist_combo.addItem("Custom...")
@@ -152,33 +217,56 @@ class MainWindow(QMainWindow):
 
         main_layout.addWidget(self.human_settings)
 
-        # Password
-        password_label = QLabel("Generated password")
+        # ---------------------------------------------------------
+        # Password output
+        # ---------------------------------------------------------
+
+        password_label = QLabel("GENERATED PASSWORD")
+        password_label.setObjectName("section_label")
 
         self.password_field = QLineEdit()
         self.password_field.setReadOnly(True)
-        self.password_field.setMinimumHeight(42)
+        self.password_field.setMinimumHeight(48)
+        self.password_field.setPlaceholderText(
+            "Your password will appear here"
+        )
 
         main_layout.addWidget(password_label)
         main_layout.addWidget(self.password_field)
 
+        # ---------------------------------------------------------
         # Buttons
+        # ---------------------------------------------------------
+
         button_layout = QHBoxLayout()
-        button_layout.setSpacing(10)
+        button_layout.setSpacing(12)
 
         self.generate_button = QPushButton("Generate")
-        self.generate_button.setMinimumHeight(42)
+        self.generate_button.setObjectName("generate_button")
+        self.generate_button.setMinimumHeight(46)
 
         self.copy_button = QPushButton("Copy")
-        self.copy_button.setMinimumHeight(42)
+        self.copy_button.setObjectName("copy_button")
+        self.copy_button.setMinimumHeight(46)
 
-        button_layout.addWidget(self.generate_button)
-        button_layout.addWidget(self.copy_button)
+        button_layout.addWidget(
+            self.generate_button,
+            2,
+        )
+        button_layout.addWidget(
+            self.copy_button,
+            1,
+        )
 
         main_layout.addLayout(button_layout)
 
+        # ---------------------------------------------------------
         # Connections
-        self.mode_combo.currentIndexChanged.connect(self.update_mode)
+        # ---------------------------------------------------------
+
+        self.mode_combo.currentIndexChanged.connect(
+            self.update_mode
+        )
 
         self.length_slider.valueChanged.connect(
             lambda value: self.length_value.setText(str(value))
@@ -192,42 +280,173 @@ class MainWindow(QMainWindow):
             self.select_wordlist
         )
 
-        self.generate_button.clicked.connect(self.generate_password)
-        self.copy_button.clicked.connect(self.copy_password)
+        self.generate_button.clicked.connect(
+            self.generate_password
+        )
 
+        self.copy_button.clicked.connect(
+            self.copy_password
+        )
+
+        # ---------------------------------------------------------
         # Initial state
+        # ---------------------------------------------------------
+
         self.update_mode()
+
+        # ---------------------------------------------------------
+        # Styling
+        # ---------------------------------------------------------
 
         self.setStyleSheet(
             """
             QWidget {
+                background-color: #18181b;
+                color: #f4f4f5;
                 font-size: 14px;
             }
 
             QLabel#title {
-                font-size: 24px;
-                font-weight: bold;
+                font-size: 27px;
+                font-weight: 700;
+                color: #fafafa;
             }
 
             QLabel#subtitle {
-                color: #777777;
-                margin-bottom: 8px;
+                font-size: 14px;
+                color: #a1a1aa;
+                margin-bottom: 4px;
             }
 
-            QComboBox,
+            QLabel#section_label {
+                font-size: 11px;
+                font-weight: 700;
+                color: #a1a1aa;
+                letter-spacing: 1px;
+            }
+
+            QLabel#subsection_label {
+                font-size: 13px;
+                font-weight: 600;
+                color: #d4d4d8;
+            }
+
+            QLabel#value_label {
+                min-width: 30px;
+                font-size: 15px;
+                font-weight: 600;
+                color: #fafafa;
+            }
+
+            QComboBox {
+                min-height: 38px;
+                padding: 0 12px;
+                border: 1px solid #3f3f46;
+                border-radius: 7px;
+                background-color: #27272a;
+                color: #fafafa;
+            }
+
+            QComboBox:hover {
+                border-color: #52525b;
+            }
+
+            QComboBox:focus {
+                border-color: #71717a;
+            }
+
+            QComboBox QAbstractItemView {
+                background-color: #27272a;
+                color: #fafafa;
+                border: 1px solid #3f3f46;
+                selection-background-color: #3f3f46;
+            }
+
+            QSlider::groove:horizontal {
+                height: 5px;
+                background: #3f3f46;
+                border-radius: 2px;
+            }
+
+            QSlider::handle:horizontal {
+                width: 17px;
+                height: 17px;
+                margin: -6px 0;
+                border-radius: 8px;
+                background: #f4f4f5;
+            }
+
+            QSlider::handle:horizontal:hover {
+                background: #ffffff;
+            }
+
+            QCheckBox {
+                spacing: 8px;
+                color: #d4d4d8;
+            }
+
+            QCheckBox::indicator {
+                width: 17px;
+                height: 17px;
+                border-radius: 4px;
+                border: 1px solid #52525b;
+                background-color: #27272a;
+            }
+
+            QCheckBox::indicator:hover {
+                border-color: #71717a;
+            }
+
+            QCheckBox::indicator:checked {
+                background-color: #f4f4f5;
+                border-color: #f4f4f5;
+            }
+
             QLineEdit {
-                padding: 8px;
-                border: 1px solid #cccccc;
-                border-radius: 6px;
+                padding: 0 14px;
+                border: 1px solid #3f3f46;
+                border-radius: 8px;
+                background-color: #09090b;
+                color: #fafafa;
+                font-size: 16px;
+            }
+
+            QLineEdit:focus {
+                border-color: #71717a;
             }
 
             QPushButton {
-                padding: 8px 16px;
-                border-radius: 6px;
+                border: 1px solid #3f3f46;
+                border-radius: 8px;
+                background-color: #27272a;
+                color: #f4f4f5;
+                font-weight: 600;
             }
 
-            QLineEdit {
-                font-size: 16px;
+            QPushButton:hover {
+                background-color: #3f3f46;
+            }
+
+            QPushButton:pressed {
+                background-color: #52525b;
+            }
+
+            QPushButton#generate_button {
+                background-color: #f4f4f5;
+                color: #18181b;
+                border: none;
+            }
+
+            QPushButton#generate_button:hover {
+                background-color: #e4e4e7;
+            }
+
+            QPushButton#generate_button:pressed {
+                background-color: #d4d4d8;
+            }
+
+            QPushButton#copy_button {
+                background-color: #27272a;
             }
             """
         )
