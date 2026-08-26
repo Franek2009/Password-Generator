@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMainWindow,
+    QMessageBox,
     QPushButton,
     QSlider,
     QVBoxLayout,
@@ -17,6 +18,7 @@ from PySide6.QtWidgets import (
 
 from app.config import PasswordConfig, PasswordMode
 from app.generator import generate_password as generate_password_from_config
+from app.wordlist import WordlistError, load_wordlist
 
 
 class MainWindow(QMainWindow):
@@ -77,7 +79,6 @@ class MainWindow(QMainWindow):
         manager_layout.setContentsMargins(0, 0, 0, 0)
         manager_layout.setSpacing(14)
 
-        # Length header
         length_header = QHBoxLayout()
 
         length_label = QLabel("Length")
@@ -91,7 +92,6 @@ class MainWindow(QMainWindow):
 
         manager_layout.addLayout(length_header)
 
-        # Length slider
         self.length_slider = QSlider(Qt.Horizontal)
         self.length_slider.setMinimum(8)
         self.length_slider.setMaximum(64)
@@ -99,7 +99,6 @@ class MainWindow(QMainWindow):
 
         manager_layout.addWidget(self.length_slider)
 
-        # Character sets
         character_label = QLabel("Character set")
         character_label.setObjectName("subsection_label")
 
@@ -155,7 +154,6 @@ class MainWindow(QMainWindow):
         human_layout.setContentsMargins(0, 0, 0, 0)
         human_layout.setSpacing(14)
 
-        # Words
         words_header = QHBoxLayout()
 
         words_label = QLabel("Words")
@@ -176,7 +174,6 @@ class MainWindow(QMainWindow):
 
         human_layout.addWidget(self.words_slider)
 
-        # Separator
         separator_layout = QHBoxLayout()
 
         separator_label = QLabel("Separator")
@@ -200,7 +197,6 @@ class MainWindow(QMainWindow):
 
         human_layout.addLayout(separator_layout)
 
-        # Word list
         wordlist_layout = QHBoxLayout()
 
         wordlist_label = QLabel("Word list")
@@ -448,6 +444,10 @@ class MainWindow(QMainWindow):
             QPushButton#copy_button {
                 background-color: #27272a;
             }
+
+            QMessageBox {
+                background-color: #18181b;
+            }
             """
         )
 
@@ -471,10 +471,23 @@ class MainWindow(QMainWindow):
             "Text files (*.txt);;All files (*)",
         )
 
-        if path:
-            self.custom_wordlist_path = path
-        else:
+        if not path:
             self.wordlist_combo.setCurrentIndex(0)
+            return
+
+        try:
+            load_wordlist(path)
+        except WordlistError as error:
+            QMessageBox.warning(
+                self,
+                "Invalid word list",
+                str(error),
+            )
+            self.custom_wordlist_path = None
+            self.wordlist_combo.setCurrentIndex(0)
+            return
+
+        self.custom_wordlist_path = path
 
     def copy_password(self):
         password = self.password_field.text()
@@ -500,7 +513,22 @@ class MainWindow(QMainWindow):
             wordlist_path=wordlist_path,
         )
 
-        password = generate_password_from_config(config)
+        try:
+            password = generate_password_from_config(config)
+        except WordlistError as error:
+            QMessageBox.warning(
+                self,
+                "Word list error",
+                str(error),
+            )
+            return
+        except ValueError as error:
+            QMessageBox.warning(
+                self,
+                "Invalid configuration",
+                str(error),
+            )
+            return
 
         self.password_field.setText(password)
 
