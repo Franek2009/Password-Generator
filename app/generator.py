@@ -1,27 +1,15 @@
-import json
 import secrets
 import string
-from pathlib import Path
 
 from app.config import PasswordConfig, PasswordMode
-
-
-WORDS_FILE = Path(__file__).parent.parent / "data" / "words.json"
-
-
-def load_words() -> list[str]:
-    with WORDS_FILE.open("r", encoding="utf-8") as file:
-        return json.load(file)
+from app.wordlist import load_words
 
 
 def generate_human_password(config: PasswordConfig) -> str:
     words = load_words()
 
-    if config.words < 1:
-        raise ValueError("Number of words must be at least 1.")
-
     selected_words = [
-        secrets.choice(words)
+        secrets.choice(words).capitalize()
         for _ in range(config.words)
     ]
 
@@ -31,10 +19,7 @@ def generate_human_password(config: PasswordConfig) -> str:
         password += str(secrets.randbelow(100))
 
     if config.special:
-        special_characters = string.punctuation.replace(
-            config.separator, ""
-        )
-        password += secrets.choice(special_characters)
+        password += secrets.choice(string.punctuation)
 
     return password
 
