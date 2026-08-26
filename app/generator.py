@@ -1,10 +1,45 @@
+import json
 import secrets
 import string
+from pathlib import Path
 
-from app.config import PasswordConfig
+from app.config import PasswordConfig, PasswordMode
 
 
-def generate_password(config: PasswordConfig) -> str:
+WORDS_FILE = Path(__file__).parent.parent / "data" / "words.json"
+
+
+def load_words() -> list[str]:
+    with WORDS_FILE.open("r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def generate_human_password(config: PasswordConfig) -> str:
+    words = load_words()
+
+    if config.words < 1:
+        raise ValueError("Number of words must be at least 1.")
+
+    selected_words = [
+        secrets.choice(words)
+        for _ in range(config.words)
+    ]
+
+    password = config.separator.join(selected_words)
+
+    if config.numbers:
+        password += str(secrets.randbelow(100))
+
+    if config.special:
+        special_characters = string.punctuation.replace(
+            config.separator, ""
+        )
+        password += secrets.choice(special_characters)
+
+    return password
+
+
+def generate_manager_password(config: PasswordConfig) -> str:
     character_sets = []
 
     if config.lowercase:
@@ -42,3 +77,10 @@ def generate_password(config: PasswordConfig) -> str:
     secrets.SystemRandom().shuffle(password)
 
     return "".join(password)
+
+
+def generate_password(config: PasswordConfig) -> str:
+    if config.mode == PasswordMode.HUMAN:
+        return generate_human_password(config)
+
+    return generate_manager_password(config)

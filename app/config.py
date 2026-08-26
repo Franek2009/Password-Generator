@@ -15,3 +15,6 @@ class PasswordConfig:
     lowercase: bool = True
     numbers: bool = True
     special: bool = True
+    words: int = 3
+    separator: str = "-"
+    language = "pl"

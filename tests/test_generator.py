@@ -1,6 +1,7 @@
 import string
-
+from app.config import PasswordConfig, PasswordMode
 import pytest
+from app.generator import generate_password, load_words
 
 from app.config import PasswordConfig
 from app.generator import generate_password
@@ -69,3 +70,23 @@ def test_password_rejects_empty_character_set():
 
     with pytest.raises(ValueError):
         generate_password(config)
+
+def test_human_password():
+    config = PasswordConfig(
+        mode=PasswordMode.HUMAN,
+        words=3,
+        numbers=True,
+        special=True,
+    )
+
+    password = generate_password(config)
+
+    parts = password.split(config.separator)
+
+    assert len(parts) == config.words
+
+    word_list = load_words()
+
+    for word in parts:
+        word_without_suffix = word.rstrip(string.digits + string.punctuation)
+        assert word_without_suffix in word_list
