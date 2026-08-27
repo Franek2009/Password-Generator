@@ -5,39 +5,39 @@ Polish word list.
 
 The application provides two password generation modes:
 
-- **Password Manager** — highly random passwords suitable for password managers.
-- **Human** — more readable passwords generated from randomly selected words.
+* **Password Manager** — highly random passwords suitable for password managers.
+* **Human** — more readable passwords generated from randomly selected words.
 
 ## Features
 
-- Password Manager mode
-- Human-readable password mode
-- Cryptographically secure random generation using Python `secrets`
-- Built-in Polish word list
-- Support for custom `.txt` word lists
-- Configurable password length
-- Configurable number of words
-- Uppercase letters
-- Lowercase letters
-- Numbers
-- Special characters
-- Multiple separators
-- Random separator selection
-- Copy generated passwords to clipboard
-- PySide6 graphical interface
-- Input validation and error handling
-- Automated test suite
-- GitHub Actions CI
+* Password Manager mode
+* Human-readable password mode
+* Cryptographically secure random generation using Python `secrets`
+* Built-in Polish word list
+* Support for custom `.txt` word lists
+* Configurable password length
+* Configurable number of words
+* Uppercase letters
+* Lowercase letters
+* Numbers
+* Special characters
+* Multiple separators
+* Random separator selection
+* Copy generated passwords to clipboard
+* PySide6 graphical interface
+* Input validation and error handling
+* Automated test suite
+* GitHub Actions CI
 
 ## Requirements
 
-- Python 3.14+
-- PySide6
+* Python 3.14+
+* PySide6
 
 For development and testing:
 
-- pytest
-- pytest-qt
+* pytest
+* pytest-qt
 
 ## Installation
 
@@ -46,7 +46,7 @@ Clone the repository:
 ```bash
 git clone git@github.com:Franek2009/Password-Generator.git
 cd Password-Generator
-````
+```
 
 Create a virtual environment:
 
@@ -68,10 +68,17 @@ source .venv/bin/activate
 .venv\Scripts\activate
 ```
 
-Install the required packages:
+Install the application dependencies:
 
 ```bash
 python -m pip install -r requirements.txt
+```
+
+If you want to run the test suite or develop the project, install the
+development dependencies instead:
+
+```bash
+python -m pip install -r requirements-dev.txt
 ```
 
 ## Running the Application
@@ -226,6 +233,7 @@ Password-Generator/
 │   └── test_wordlist.py
 ├── main.py
 ├── requirements.txt
+├── requirements-dev.txt
 ├── LICENSE
 └── README.md
 ```
@@ -312,6 +320,12 @@ Tests word-list loading and validation.
 ## Testing
 
 The project uses `pytest` and `pytest-qt`.
+
+Install the development dependencies:
+
+```bash
+python -m pip install -r requirements-dev.txt
+```
 
 Run the complete test suite:
 
