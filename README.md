@@ -3,9 +3,10 @@
 A secure password generator with a graphical interface and a built-in
 Polish word list.
 
-The project provides two password generation modes: highly random
-passwords for password managers and more human-readable passwords
-based on randomly selected words.
+The application provides two password generation modes:
+
+- **Password Manager** — highly random passwords suitable for password managers.
+- **Human** — more readable passwords generated from randomly selected words.
 
 ## Features
 
@@ -16,14 +17,17 @@ based on randomly selected words.
 - Support for custom `.txt` word lists
 - Configurable password length
 - Configurable number of words
-- Uppercase and lowercase letters
+- Uppercase letters
+- Lowercase letters
 - Numbers
 - Special characters
 - Multiple separators
 - Random separator selection
 - Copy generated passwords to clipboard
 - PySide6 graphical interface
+- Input validation and error handling
 - Automated test suite
+- GitHub Actions CI
 
 ## Requirements
 
@@ -33,6 +37,7 @@ based on randomly selected words.
 For development and testing:
 
 - pytest
+- pytest-qt
 
 ## Installation
 
@@ -43,13 +48,33 @@ git clone git@github.com:Franek2009/Password-Generator.git
 cd Password-Generator
 ````
 
+Create a virtual environment:
+
+```bash
+python -m venv .venv
+```
+
+Activate it:
+
+### Linux / macOS
+
+```bash
+source .venv/bin/activate
+```
+
+### Windows
+
+```powershell
+.venv\Scripts\activate
+```
+
 Install the required packages:
 
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-## Usage
+## Running the Application
 
 Start the application with:
 
@@ -57,41 +82,131 @@ Start the application with:
 python main.py
 ```
 
-### Password Manager mode
+## Password Manager Mode
 
-Generates random passwords using configurable character sets:
+Password Manager mode generates highly random passwords using
+cryptographically secure randomness provided by Python's `secrets` module.
 
-* uppercase letters
-* lowercase letters
-* numbers
-* special characters
+The following character sets can be enabled independently:
 
-The password length can be adjusted from 8 to 64 characters.
+* Uppercase letters
+* Lowercase letters
+* Numbers
+* Special characters
 
-### Human mode
+The password length can be configured from **8 to 64 characters** through
+the graphical interface.
 
-Generates passwords using randomly selected words from a word list.
+At least one character set must be enabled.
 
-Example:
+When multiple character sets are selected, the generator guarantees that
+at least one character from every selected set is present in the password,
+provided that the requested length is sufficient.
+
+## Human Mode
+
+Human mode generates more readable passwords from randomly selected words.
+
+The user can configure:
+
+* Number of words
+* Separator
+* Word list
+* Numbers
+* Special characters
+
+Supported separators:
+
+```text
+-
+_
+.
+(space)
+/
+|
+Random
+```
+
+When `Random` is selected, one separator is chosen randomly and used
+consistently throughout the generated password.
+
+### Word Selection
+
+Words are selected without replacement when the word list contains enough
+entries.
+
+If more words are requested than are available in the word list, the
+remaining words are selected with replacement.
+
+Words are capitalized before being combined into the password.
+
+Numbers and special characters can be added as separate password parts.
+
+### Example
 
 ```text
 Rower-Zamek-Las-Kawa42!
 ```
 
-The number of words, separator and word list can be configured.
+The exact output is random and will be different each time.
 
-Custom word lists can be loaded from `.txt` files.
+## Custom Word Lists
 
-## Testing
+Human mode supports custom word lists stored as `.txt` files.
 
-Run the test suite with:
+A word list should contain one word per line.
 
-```bash
-python -m pytest
+Example:
+
+```text
+kot
+pies
+zamek
+rower
+las
 ```
 
-The project contains tests covering password generation,
-word list loading and error handling.
+Custom word lists are validated before being used.
+
+The application handles errors such as:
+
+* missing word lists
+* empty word lists
+* invalid word list data
+
+## Architecture
+
+The application separates configuration, password generation,
+word-list handling and the graphical interface.
+
+The general flow is:
+
+```text
+User
+  ↓
+PySide6 GUI
+  ↓
+PasswordConfig
+  ↓
+Configuration validation
+  ↓
+Password generator
+  ├── Password Manager mode
+  │      ↓
+  │   Character sets
+  │      ↓
+  │   Secure random generation
+  │
+  └── Human mode
+         ↓
+      Word list
+         ↓
+      Secure random word selection
+  ↓
+Generated password
+  ↓
+GUI / Clipboard
+```
 
 ## Project Structure
 
@@ -107,6 +222,7 @@ Password-Generator/
 │   └── README.md
 ├── tests/
 │   ├── test_generator.py
+│   ├── test_ui.py
 │   └── test_wordlist.py
 ├── main.py
 ├── requirements.txt
@@ -114,16 +230,160 @@ Password-Generator/
 └── README.md
 ```
 
-## Word List
+### `main.py`
 
-The built-in Polish word list contains 3888 words.
+Application entry point.
 
-It is based on the
+Starts the PySide6 graphical interface.
+
+### `app/config.py`
+
+Defines the password configuration and validation logic.
+
+Main components:
+
+* `PasswordMode`
+* `PasswordConfig`
+
+The configuration validates settings before password generation.
+
+### `app/generator.py`
+
+Contains the password generation logic.
+
+Main functionality:
+
+* Human password generation
+* Password Manager generation
+* Mode selection
+* Secure random selection
+* Random separator selection
+* Character-set handling
+* Word selection without replacement when possible
+
+Python's `secrets` module is used for security-sensitive randomness.
+
+### `app/wordlist.py`
+
+Handles loading and validating word lists.
+
+It provides access to the built-in Polish word list as well as custom
+word-list files.
+
+### `app/ui.py`
+
+Contains the PySide6 graphical interface.
+
+The interface is responsible for:
+
+* selecting the password mode
+* configuring generation settings
+* selecting custom word lists
+* displaying generated passwords
+* copying passwords to the clipboard
+* displaying configuration and word-list errors
+
+### `tests/test_generator.py`
+
+Tests password generation and configuration validation.
+
+The tests cover both Password Manager and Human modes, including
+edge cases and custom word lists.
+
+### `tests/test_ui.py`
+
+Tests the PySide6 graphical interface.
+
+The tests cover:
+
+* mode switching
+* sliders
+* character-set controls
+* separators
+* word lists
+* password generation
+* clipboard functionality
+* error handling
+
+### `tests/test_wordlist.py`
+
+Tests word-list loading and validation.
+
+## Testing
+
+The project uses `pytest` and `pytest-qt`.
+
+Run the complete test suite:
+
+```bash
+python -m pytest
+```
+
+The current test suite contains **85 tests** covering:
+
+* password generation
+* configuration validation
+* Human mode
+* Password Manager mode
+* character-set handling
+* password length edge cases
+* word selection
+* custom word lists
+* invalid and missing word lists
+* GUI behaviour
+* mode switching
+* clipboard functionality
+* error handling
+
+A successful run should look similar to:
+
+```text
+85 passed
+```
+
+## Code Quality Checks
+
+Before committing changes, the project can be checked with:
+
+```bash
+python -m pytest
+git diff --check
+git status
+```
+
+GitHub Actions also runs the automated test suite.
+
+## Security
+
+Password generation uses Python's `secrets` module rather than the
+standard `random` module.
+
+This is important because `secrets` is designed for generating values
+that need to be unpredictable, such as passwords and other security
+tokens.
+
+The Password Manager mode also guarantees that each selected character
+set is represented in the generated password when the configured length
+allows it.
+
+Generated passwords are not intentionally persisted by the application.
+
+## Built-in Word List
+
+The built-in Polish word list is stored locally in:
+
+```text
+data/words.txt
+```
+
+The word list is based on the
 [diceware-pl](https://github.com/MaciekTalaska/diceware-pl)
 project by Maciek Tałaska.
 
 The included word list is used under the MIT License.
-See `data/README.md` for attribution and source information.
+
+See [`data/README.md`](data/README.md) for attribution and source
+information.
 
 ## License
 
@@ -133,9 +393,22 @@ See [`LICENSE`](LICENSE) for the full license text.
 
 ## Status
 
-The project is currently under development.
+The project is functional and tested.
 
-More features, improvements and security-related checks are planned.
+The current version provides:
+
+* secure password generation
+* Password Manager mode
+* Human mode
+* custom word lists
+* configurable generation options
+* PySide6 graphical interface
+* clipboard support
+* validation and error handling
+* automated tests
+* continuous integration
+
+The project is considered complete in its current scope.
 
 ## Credits
 
