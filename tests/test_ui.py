@@ -1,6 +1,6 @@
 import pytest
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from app.config import PasswordMode
 from app.generator import RANDOM_SEPARATORS
@@ -152,15 +152,25 @@ def test_manager_mode_generates_password_with_numbers_only(window):
     assert password.isdigit()
 
 
-def test_manager_mode_rejects_no_character_sets(window):
+def test_manager_mode_rejects_no_character_sets(window, monkeypatch):
     window.uppercase_checkbox.setChecked(False)
     window.lowercase_checkbox.setChecked(False)
     window.numbers_checkbox.setChecked(False)
     window.special_checkbox.setChecked(False)
 
+    messages = []
+
+    def fake_warning(*args):
+        messages.append(args)
+
+    monkeypatch.setattr(QMessageBox, "warning", fake_warning)
+
     window.generate_button.click()
 
     assert window.password_field.text() == ""
+    assert len(messages) == 1
+    assert messages[0][1] == "Invalid configuration"
+    assert messages[0][2] == "At least one character set must be enabled."
 
 
 def test_human_mode_generates_password(window):
