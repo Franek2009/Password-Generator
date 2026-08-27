@@ -7,6 +7,17 @@ class PasswordMode(Enum):
     MANAGER = "manager"
 
 
+SUPPORTED_SEPARATORS = {
+    "-",
+    "_",
+    ".",
+    " ",
+    "/",
+    "|",
+    "Random",
+}
+
+
 @dataclass
 class PasswordConfig:
     mode: PasswordMode = PasswordMode.MANAGER
@@ -28,6 +39,11 @@ class PasswordConfig:
             raise ValueError("Unsupported password mode.")
 
     def _validate_manager(self) -> None:
+        if self.length < 1:
+            raise ValueError(
+                "Password length must be at least 1."
+            )
+
         character_sets_enabled = sum(
             [
                 self.uppercase,
@@ -50,7 +66,16 @@ class PasswordConfig:
 
     def _validate_human(self) -> None:
         if self.words < 1:
-            raise ValueError("Number of words must be at least 1.")
+            raise ValueError(
+                "Number of words must be at least 1."
+            )
 
         if not self.separator:
-            raise ValueError("Separator cannot be empty.")
+            raise ValueError(
+                "Separator cannot be empty."
+            )
+
+        if self.separator not in SUPPORTED_SEPARATORS:
+            raise ValueError(
+                f"Unsupported separator: {self.separator}"
+            )

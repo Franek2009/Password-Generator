@@ -8,6 +8,22 @@ from app.wordlist import load_wordlist, load_words
 RANDOM_SEPARATORS = ["-", "_", ".", " ", "/", "|"]
 
 
+def _select_words(words: list[str], count: int) -> list[str]:
+    if count <= len(words):
+        return secrets.SystemRandom().sample(words, count)
+
+    selected_words = list(words)
+
+    selected_words.extend(
+        secrets.choice(words)
+        for _ in range(count - len(words))
+    )
+
+    secrets.SystemRandom().shuffle(selected_words)
+
+    return selected_words
+
+
 def generate_human_password(config: PasswordConfig) -> str:
     config.validate()
 
@@ -20,8 +36,8 @@ def generate_human_password(config: PasswordConfig) -> str:
         raise ValueError("Word list cannot be empty.")
 
     selected_words = [
-        secrets.choice(words).capitalize()
-        for _ in range(config.words)
+        word.capitalize()
+        for word in _select_words(words, config.words)
     ]
 
     if config.separator == "Random":
@@ -29,15 +45,17 @@ def generate_human_password(config: PasswordConfig) -> str:
     else:
         separator = config.separator
 
-    password = separator.join(selected_words)
+    parts = selected_words
 
     if config.numbers:
-        password += str(secrets.randbelow(100))
+        parts.append(str(secrets.randbelow(100)))
 
     if config.special:
-        password += secrets.choice(string.punctuation)
+        parts.append(secrets.choice(string.punctuation))
 
-    return password
+    secrets.SystemRandom().shuffle(parts)
+
+    return separator.join(parts)
 
 
 def generate_manager_password(config: PasswordConfig) -> str:
