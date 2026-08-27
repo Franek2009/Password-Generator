@@ -24,9 +24,7 @@ def _select_words(words: list[str], count: int) -> list[str]:
     return selected_words
 
 
-def generate_human_password(config: PasswordConfig) -> str:
-    config.validate()
-
+def _generate_human_password(config: PasswordConfig) -> str:
     if config.wordlist_path:
         words = load_wordlist(config.wordlist_path)
     else:
@@ -51,16 +49,30 @@ def generate_human_password(config: PasswordConfig) -> str:
         parts.append(str(secrets.randbelow(100)))
 
     if config.special:
-        parts.append(secrets.choice(string.punctuation))
+        special_characters = string.punctuation.replace(
+            separator,
+            "",
+        )
+
+        if not special_characters:
+            raise ValueError(
+                "No special characters available for the selected "
+                "separator."
+            )
+
+        parts.append(secrets.choice(special_characters))
 
     secrets.SystemRandom().shuffle(parts)
 
     return separator.join(parts)
 
 
-def generate_manager_password(config: PasswordConfig) -> str:
+def generate_human_password(config: PasswordConfig) -> str:
     config.validate()
+    return _generate_human_password(config)
 
+
+def _generate_manager_password(config: PasswordConfig) -> str:
     character_sets = []
 
     if config.lowercase:
@@ -92,10 +104,15 @@ def generate_manager_password(config: PasswordConfig) -> str:
     return "".join(password)
 
 
+def generate_manager_password(config: PasswordConfig) -> str:
+    config.validate()
+    return _generate_manager_password(config)
+
+
 def generate_password(config: PasswordConfig) -> str:
     config.validate()
 
     if config.mode == PasswordMode.HUMAN:
-        return generate_human_password(config)
+        return _generate_human_password(config)
 
-    return generate_manager_password(config)
+    return _generate_manager_password(config)
