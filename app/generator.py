@@ -9,6 +9,8 @@ RANDOM_SEPARATORS = ["-", "_", ".", " ", "/", "|"]
 
 
 def generate_human_password(config: PasswordConfig) -> str:
+    config.validate()
+
     if config.wordlist_path:
         words = load_wordlist(config.wordlist_path)
     else:
@@ -39,6 +41,8 @@ def generate_human_password(config: PasswordConfig) -> str:
 
 
 def generate_manager_password(config: PasswordConfig) -> str:
+    config.validate()
+
     character_sets = []
 
     if config.lowercase:
@@ -52,16 +56,6 @@ def generate_manager_password(config: PasswordConfig) -> str:
 
     if config.special:
         character_sets.append(string.punctuation)
-
-    if not character_sets:
-        raise ValueError(
-            "At least one character set must be enabled."
-        )
-
-    if config.length < len(character_sets):
-        raise ValueError(
-            "Password length is too short for the selected character sets."
-        )
 
     password = [
         secrets.choice(character_set)
@@ -81,6 +75,8 @@ def generate_manager_password(config: PasswordConfig) -> str:
 
 
 def generate_password(config: PasswordConfig) -> str:
+    config.validate()
+
     if config.mode == PasswordMode.HUMAN:
         return generate_human_password(config)
 

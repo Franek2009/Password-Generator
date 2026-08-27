@@ -12,6 +12,11 @@ from app.generator import (
 from app.wordlist import WordlistError
 
 
+# -------------------------------------------------------------------------
+# Manager password generation
+# -------------------------------------------------------------------------
+
+
 def test_manager_password_has_correct_length():
     config = PasswordConfig(length=32)
 
@@ -143,6 +148,58 @@ def test_manager_password_exact_minimum_length():
     assert any(char in string.punctuation for char in password)
 
 
+def test_manager_password_with_length_one():
+    config = PasswordConfig(
+        length=1,
+        uppercase=False,
+        lowercase=True,
+        numbers=False,
+        special=False,
+    )
+
+    password = generate_manager_password(config)
+
+    assert len(password) == 1
+    assert password in string.ascii_lowercase
+
+
+def test_manager_password_with_zero_length():
+    config = PasswordConfig(
+        length=0,
+        uppercase=False,
+        lowercase=True,
+        numbers=False,
+        special=False,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Password length is too short",
+    ):
+        generate_manager_password(config)
+
+
+def test_manager_password_with_length_one_and_multiple_sets():
+    config = PasswordConfig(
+        length=1,
+        uppercase=True,
+        lowercase=True,
+        numbers=True,
+        special=True,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Password length is too short",
+    ):
+        generate_manager_password(config)
+
+
+# -------------------------------------------------------------------------
+# Human password generation
+# -------------------------------------------------------------------------
+
+
 def test_human_password_has_correct_number_of_words():
     config = PasswordConfig(
         mode=PasswordMode.HUMAN,
@@ -256,7 +313,7 @@ def test_human_password_with_one_word():
     assert config.separator not in password
 
 
-def test_human_password_with_zero_words():
+def test_human_password_rejects_zero_words():
     config = PasswordConfig(
         mode=PasswordMode.HUMAN,
         words=0,
@@ -264,9 +321,11 @@ def test_human_password_with_zero_words():
         special=False,
     )
 
-    password = generate_human_password(config)
-
-    assert password == ""
+    with pytest.raises(
+        ValueError,
+        match="Number of words must be at least 1",
+    ):
+        generate_human_password(config)
 
 
 def test_human_password_with_custom_wordlist(tmp_path):
@@ -342,40 +401,44 @@ def test_human_password_with_missing_custom_wordlist(tmp_path):
         generate_human_password(config)
 
 
-def test_manager_password_with_length_one():
+# -------------------------------------------------------------------------
+# Configuration validation
+# -------------------------------------------------------------------------
+
+
+def test_manager_config_validation_accepts_valid_configuration():
     config = PasswordConfig(
-        length=1,
-        uppercase=False,
+        mode=PasswordMode.MANAGER,
+        length=20,
+        uppercase=True,
         lowercase=True,
-        numbers=False,
-        special=False,
+        numbers=True,
+        special=True,
     )
 
-    password = generate_manager_password(config)
-
-    assert len(password) == 1
-    assert password in string.ascii_lowercase
+    config.validate()
 
 
-def test_manager_password_with_zero_length():
+def test_manager_config_validation_rejects_no_character_sets():
     config = PasswordConfig(
-        length=0,
+        mode=PasswordMode.MANAGER,
         uppercase=False,
-        lowercase=True,
+        lowercase=False,
         numbers=False,
         special=False,
     )
 
     with pytest.raises(
         ValueError,
-        match="Password length is too short",
+        match="At least one character set",
     ):
-        generate_manager_password(config)
+        config.validate()
 
 
-def test_manager_password_with_length_one_and_multiple_sets():
+def test_manager_config_validation_rejects_too_short_length():
     config = PasswordConfig(
-        length=1,
+        mode=PasswordMode.MANAGER,
+        length=3,
         uppercase=True,
         lowercase=True,
         numbers=True,
@@ -386,4 +449,89 @@ def test_manager_password_with_length_one_and_multiple_sets():
         ValueError,
         match="Password length is too short",
     ):
-        generate_manager_password(config)
+        config.validate()
+
+
+def test_manager_config_validation_accepts_exact_minimum_length():
+    config = PasswordConfig(
+        mode=PasswordMode.MANAGER,
+        length=4,
+        uppercase=True,
+        lowercase=True,
+        numbers=True,
+        special=True,
+    )
+
+    config.validate()
+
+
+def test_human_config_validation_accepts_valid_configuration():
+    config = PasswordConfig(
+        mode=PasswordMode.HUMAN,
+        words=3,
+        separator="-",
+    )
+
+    config.validate()
+
+
+def test_human_config_validation_accepts_random_separator():
+    config = PasswordConfig(
+        mode=PasswordMode.HUMAN,
+        words=3,
+        separator="Random",
+    )
+
+    config.validate()
+
+
+def test_human_config_validation_rejects_zero_words():
+    config = PasswordConfig(
+        mode=PasswordMode.HUMAN,
+        words=0,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Number of words must be at least 1",
+    ):
+        config.validate()
+
+
+def test_human_config_validation_rejects_negative_words():
+    config = PasswordConfig(
+        mode=PasswordMode.HUMAN,
+        words=-1,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Number of words must be at least 1",
+    ):
+        config.validate()
+
+
+def test_human_config_validation_rejects_empty_separator():
+    config = PasswordConfig(
+        mode=PasswordMode.HUMAN,
+        words=3,
+        separator="",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Separator cannot be empty",
+    ):
+        config.validate()
+
+
+def test_config_validation_rejects_unsupported_mode():
+    config = PasswordConfig(
+        mode="unsupported",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Unsupported password mode",
+    ):
+        config.validate()
