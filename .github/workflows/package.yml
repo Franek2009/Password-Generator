@@ -1,0 +1,186 @@
+name: Package
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  package-linux:
+    name: Linux x86-64
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14.7"
+          architecture: x64
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-build.txt
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libegl1 \
+            libgl1 \
+            libdbus-1-3 \
+            libxkbcommon-x11-0 \
+            libxcb-cursor0
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-build.txt
+
+      - name: Build application
+        run: python -m PyInstaller --noconfirm --clean PasswordGenerator.spec
+
+      - name: Validate bundle
+        run: |
+          test -x dist/PasswordGenerator/PasswordGenerator
+          test -f dist/PasswordGenerator/_internal/data/words.txt
+          test -f dist/PasswordGenerator/_internal/assets/icon.png
+
+          if ldd dist/PasswordGenerator/PasswordGenerator | grep -q "not found"; then
+            ldd dist/PasswordGenerator/PasswordGenerator
+            exit 1
+          fi
+
+      - name: Smoke test
+        run: |
+          set +e
+          cd /tmp
+          timeout 5s env \
+            QT_QPA_PLATFORM=offscreen \
+            QT_QPA_PLATFORMTHEME= \
+            "$GITHUB_WORKSPACE/dist/PasswordGenerator/PasswordGenerator"
+          status=$?
+          set -e
+
+          if [ "$status" -ne 124 ]; then
+            echo "Application exited unexpectedly with status $status"
+            exit 1
+          fi
+
+      - name: Create archive
+        run: |
+          tar -C dist -czf PasswordGenerator-linux-x86_64.tar.gz \
+            PasswordGenerator
+
+      - name: Validate archive
+        run: |
+          tar -tzf PasswordGenerator-linux-x86_64.tar.gz \
+            PasswordGenerator/PasswordGenerator \
+            PasswordGenerator/_internal/data/words.txt \
+            PasswordGenerator/_internal/assets/icon.png
+
+      - name: Upload Linux package
+        uses: actions/upload-artifact@v7
+        with:
+          name: PasswordGenerator-linux-x86_64.tar.gz
+          path: PasswordGenerator-linux-x86_64.tar.gz
+          if-no-files-found: error
+          archive: false
+
+  package-windows:
+    name: Windows x86-64
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14.7"
+          architecture: x64
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-build.txt
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-build.txt
+
+      - name: Build application
+        run: python -m PyInstaller --noconfirm --clean PasswordGenerator.spec
+
+      - name: Validate bundle
+        shell: pwsh
+        run: |
+          $requiredFiles = @(
+            "dist/PasswordGenerator/PasswordGenerator.exe",
+            "dist/PasswordGenerator/_internal/data/words.txt",
+            "dist/PasswordGenerator/_internal/assets/icon.png"
+          )
+
+          foreach ($file in $requiredFiles) {
+            if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
+              throw "Required bundle file is missing: $file"
+            }
+          }
+
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath "dist/PasswordGenerator/PasswordGenerator.exe" -PassThru
+
+          if ($process.WaitForExit(5000)) {
+            throw "Application exited unexpectedly with status $($process.ExitCode)"
+          }
+
+          Stop-Process -Id $process.Id
+
+      - name: Create archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "dist/PasswordGenerator" -DestinationPath "PasswordGenerator-windows-x86_64.zip"
+
+      - name: Validate archive
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+          $archive = [System.IO.Compression.ZipFile]::OpenRead(
+            (Resolve-Path "PasswordGenerator-windows-x86_64.zip")
+          )
+
+          try {
+            $entries = $archive.Entries.FullName
+            $requiredEntries = @(
+              "PasswordGenerator/PasswordGenerator.exe",
+              "PasswordGenerator/_internal/data/words.txt",
+              "PasswordGenerator/_internal/assets/icon.png"
+            )
+
+            foreach ($entry in $requiredEntries) {
+              if ($entries -notcontains $entry) {
+                throw "Required archive entry is missing: $entry"
+              }
+            }
+          }
+          finally {
+            $archive.Dispose()
+          }
+
+      - name: Upload Windows package
+        uses: actions/upload-artifact@v7
+        with:
+          name: PasswordGenerator-windows-x86_64.zip
+          path: PasswordGenerator-windows-x86_64.zip
+          if-no-files-found: error
+          archive: false
