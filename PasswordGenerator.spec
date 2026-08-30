@@ -12,6 +12,7 @@ a = Analysis(
     binaries=[],
     datas=[
         (str(PROJECT_ROOT / "data" / "words.txt"), "data"),
+        (str(PROJECT_ROOT / "assets" / "icon.png"), "assets"),
     ],
     hiddenimports=[],
     hookspath=[],

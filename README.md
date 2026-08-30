@@ -426,8 +426,19 @@ The project is considered complete in its current scope.
 
 ## Credits
 
+### Polish word list
+
 The built-in Polish word list is based on
 [diceware-pl](https://github.com/MaciekTalaska/diceware-pl)
 by Maciek Tałaska.
+
+### Application icon
+
+The application icon was designed for Password Generator.
+
+The lock symbol used in the icon is
+[Lock Alt by Amanda Moita](https://inkscape.org/~amandamoita/%E2%98%85lock-alt-svgrepo-com)
+and is licensed under
+[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
 
 If you use this project, attribution is appreciated.
