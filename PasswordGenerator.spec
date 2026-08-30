@@ -28,6 +28,14 @@ a = Analysis(
     noarchive=False,
     optimize=0,
 )
+a.binaries = [
+    entry for entry in a.binaries
+    if "virtualkeyboard" not in entry[0].lower()
+]
+a.datas = [
+    entry for entry in a.datas
+    if "virtualkeyboard" not in entry[0].lower()
+]
 pyz = PYZ(a.pure)
 
 exe = EXE(
