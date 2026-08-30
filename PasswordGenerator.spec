@@ -28,14 +28,29 @@ a = Analysis(
     noarchive=False,
     optimize=0,
 )
-a.binaries = [
-    entry for entry in a.binaries
-    if "virtualkeyboard" not in entry[0].lower()
-]
-a.datas = [
-    entry for entry in a.datas
-    if "virtualkeyboard" not in entry[0].lower()
-]
+EXCLUDED_QT_COMPONENTS = (
+    "virtualkeyboard",
+    "qt6qml",
+    "qt6quick",
+    "qt6pdf",
+)
+EXCLUDED_QT_PLUGINS = {
+    "libqpdf.so",
+    "qpdf.dll",
+}
+
+
+def include_qt_entry(entry):
+    destination = entry[0].replace("\\", "/").lower()
+    filename = destination.rsplit("/", 1)[-1]
+    return (
+        not any(component in destination for component in EXCLUDED_QT_COMPONENTS)
+        and filename not in EXCLUDED_QT_PLUGINS
+    )
+
+
+a.binaries = [entry for entry in a.binaries if include_qt_entry(entry)]
+a.datas = [entry for entry in a.datas if include_qt_entry(entry)]
 pyz = PYZ(a.pure)
 
 exe = EXE(
