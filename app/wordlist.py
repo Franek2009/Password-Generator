@@ -1,7 +1,9 @@
 from pathlib import Path
 
+from app.resources import resource_path
 
-WORDS_FILE = Path(__file__).parent.parent / "data" / "words.txt"
+
+WORDS_FILE = resource_path("data", "words.txt")
 
 
 class WordlistError(Exception):
