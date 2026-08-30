@@ -20,6 +20,10 @@ environment.
 * Input validation and clear error messages
 * Standalone Linux and Windows builds
 
+## Screenshot
+
+![Password Generator in Human mode](docs/password-generator.png)
+
 ## Download
 
 Standalone packages will be published on the
