@@ -4,7 +4,7 @@ The application icon is provided in the following formats:
 
 - `icon.svg` is the editable master.
 - `icon.png` is the runtime icon used by Qt and Linux builds.
-- `icon.ico` will be added in the future as the Windows executable icon.
+- `icon.ico` is the Windows executable icon.
 
 The application icon was designed for Password Generator.
 

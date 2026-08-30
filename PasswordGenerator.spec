@@ -1,9 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 from pathlib import Path
+import sys
 
 
 PROJECT_ROOT = Path(SPEC).resolve().parent
+EXE_OPTIONS = (
+    {"icon": str(PROJECT_ROOT / "assets" / "icon.ico")}
+    if sys.platform == "win32"
+    else {}
+)
 
 
 a = Analysis(
@@ -34,7 +40,8 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=True,
+    console=sys.platform != "win32",
+    **EXE_OPTIONS,
 )
 
 coll = COLLECT(
