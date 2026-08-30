@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.application import APP_NAME, configure_application
 from app.config import PasswordConfig, PasswordMode
 from app.generator import generate_password as generate_password_from_config
 from app.wordlist import WordlistError, load_wordlist
@@ -25,7 +26,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Password Generator")
+        self.setWindowTitle(APP_NAME)
         self.resize(560, 560)
 
         self.custom_wordlist_path = None
@@ -535,6 +536,7 @@ class MainWindow(QMainWindow):
 
 def run_app():
     app = QApplication([])
+    configure_application(app)
 
     window = MainWindow()
     window.show()
