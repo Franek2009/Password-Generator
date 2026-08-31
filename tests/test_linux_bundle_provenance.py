@@ -1,6 +1,7 @@
 import pytest
 
 from scripts.linux_bundle_provenance import (
+    LEGACY_PACKAGE_LICENSES,
     classify_copyright,
     license_family,
     parse_debian_copyright,
@@ -93,6 +94,21 @@ The runtime libraries are covered by GPL-3.0 and the
 GCC Runtime Library Exception, version 3.1.
 """
 
+LEGACY_COPYRIGHT = """\
+This legacy Debian copyright file contains a verified runtime license,
+but does not use machine-readable DEP-5 Files and License fields.
+"""
+
+XZ_COPYRIGHT = """\
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+
+Files: *
+Copyright: 2006-2018, Lasse Collin
+License: PD
+ This file has been put in the public domain.
+ You can do whatever you want with this file.
+"""
+
 
 @pytest.mark.parametrize(
     ("copyright_text", "bundle_path", "matched_license", "family", "source_required"),
@@ -123,6 +139,58 @@ def test_gcc_runtime_requires_manual_review(bundle_path):
     assert result["license_family"] == "GPL-with-exception"
     assert result["manual_review"] is True
     assert result["source_required"] == "unknown"
+
+
+@pytest.mark.parametrize(
+    ("source_package", "source_version", "matched_license", "family", "manual", "source"),
+    [
+        (*key, *value)
+        for key, value in LEGACY_PACKAGE_LICENSES.items()
+    ],
+)
+def test_exact_legacy_package_registry(
+    source_package, source_version, matched_license, family, manual, source
+):
+    result = classify_copyright(
+        LEGACY_COPYRIGHT,
+        "_internal/libruntime.so.1",
+        source_package,
+        source_version,
+    )
+
+    assert result["matched_files_stanza"] == "verified legacy Debian copyright"
+    assert result["matched_license"] == matched_license
+    assert result["license_family"] == family
+    assert result["manual_review"] is manual
+    assert result["source_required"] == source
+
+
+@pytest.mark.parametrize("source_package,source_version", LEGACY_PACKAGE_LICENSES)
+def test_legacy_registry_does_not_apply_to_other_versions(source_package, source_version):
+    result = classify_copyright(
+        LEGACY_COPYRIGHT,
+        "_internal/libruntime.so.1",
+        source_package,
+        source_version + ".different",
+    )
+
+    assert result["license_family"] == "unknown"
+    assert result["manual_review"] is True
+    assert result["source_required"] == "unknown"
+
+
+def test_xz_public_domain_identifier_from_debian_copyright():
+    result = classify_copyright(
+        XZ_COPYRIGHT,
+        "_internal/liblzma.so.5",
+        "xz-utils",
+        "5.6.1+really5.4.5-1ubuntu0.3",
+    )
+
+    assert result["matched_license"] == "PD"
+    assert result["license_family"] == "permissive"
+    assert result["manual_review"] is False
+    assert result["source_required"] == "no"
 
 
 def test_parser_preserves_folded_files_and_copyright_fields():
