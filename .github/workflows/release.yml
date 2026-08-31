@@ -46,6 +46,7 @@ jobs:
         with:
           name: PasswordGenerator-windows-x86_64.zip
           path: release-assets
+          skip-decompress: true
 
       - name: Download Linux license audit
         uses: actions/download-artifact@v8
@@ -61,17 +62,40 @@ jobs:
 
       - name: Validate release assets
         run: |
-          test -f release-assets/PasswordGenerator-linux-x86_64.tar.gz
-          test -f release-assets/PasswordGenerator-windows-x86_64.zip
-          test -f release-sources/SOURCE_ASSETS_MANIFEST.txt
+          required_assets=(
+            release-assets/PasswordGenerator-linux-x86_64.tar.gz
+            release-assets/PasswordGenerator-windows-x86_64.zip
+            release-sources/SOURCE_ASSETS_MANIFEST.txt
+          )
 
+          for asset in "${required_assets[@]}"; do
+            if [ ! -f "$asset" ]; then
+              echo "Required release asset is missing: $asset"
+              echo "Files present in release-assets and release-sources:"
+              find release-assets release-sources -type f -print | sort
+              exit 1
+            fi
+          done
+
+          expected_source_count=53
           source_count=$(find release-sources/qt release-sources/ubuntu \
             -type f | wc -l)
-          test "$source_count" -eq 53
+          echo "Corresponding Source files: actual=$source_count expected=$expected_source_count"
+          if [ "$source_count" -ne "$expected_source_count" ]; then
+            find release-sources/qt release-sources/ubuntu \
+              -type f -print | sort
+            exit 1
+          fi
 
           oversized=$(find release-assets release-sources -type f \
             -size +2147483647c -print -quit)
-          test -z "$oversized"
+          if [ -n "$oversized" ]; then
+            echo "Release asset exceeds the per-file limit: $oversized"
+            stat --format='size=%s bytes' "$oversized"
+            exit 1
+          fi
+
+          echo "No release asset is 2 GiB or larger"
 
       - name: Prepare draft release
         env:
