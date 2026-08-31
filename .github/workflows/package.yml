@@ -46,6 +46,21 @@ jobs:
       - name: Build application
         run: python -m PyInstaller --noconfirm --clean PasswordGenerator.spec
 
+      - name: Audit Linux bundle provenance
+        run: |
+          python scripts/linux_bundle_provenance.py \
+            --toc build/PasswordGenerator/COLLECT-00.toc \
+            --bundle dist/PasswordGenerator \
+            --output build/linux-license-audit
+
+      - name: Upload Linux license audit
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: PasswordGenerator-linux-license-audit
+          path: build/linux-license-audit/
+          if-no-files-found: error
+
       - name: Validate bundle
         run: |
           test -x dist/PasswordGenerator/PasswordGenerator
