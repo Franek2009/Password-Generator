@@ -85,30 +85,197 @@ def wheel_files() -> dict[Path, tuple[str, str]]:
     return result
 
 
+IGNORED_FILES_PARTS = {
+    "debian",
+    "doc",
+    "docs",
+    "example",
+    "examples",
+    "fuzz",
+    "ossfuzz",
+    "perf",
+    "program",
+    "programs",
+    "script",
+    "scripts",
+    "test",
+    "tests",
+    "tool",
+    "tools",
+}
+
+
+def parse_debian_copyright(text: str) -> list[dict[str, str]]:
+    """Parse paragraphs and folded fields from DEP-5 copyright metadata."""
+    paragraphs: list[dict[str, str]] = []
+    fields: dict[str, str] = {}
+    current_field: str | None = None
+
+    def finish_paragraph() -> None:
+        nonlocal fields, current_field
+        if fields:
+            paragraphs.append(fields)
+        fields = {}
+        current_field = None
+
+    for line in text.splitlines() + [""]:
+        if line.startswith("#"):
+            continue
+        if not line.strip():
+            finish_paragraph()
+            continue
+        if line[0].isspace():
+            if current_field is None:
+                raise ValueError("continuation line without a field")
+            continuation = line[1:]
+            fields[current_field] += "\n" + continuation
+            continue
+        field, separator, value = line.partition(":")
+        if not separator or not field:
+            raise ValueError(f"invalid DEP-5 field line: {line!r}")
+        current_field = field.lower()
+        fields[current_field] = value.lstrip()
+
+    return paragraphs
+
+
 def license_tokens(text: str) -> list[str]:
-    tokens = {
-        match.group(1).strip()
-        for match in re.finditer(r"(?mi)^License:\s*([^\n]+)$", text)
-    }
-    return sorted(tokens)
+    try:
+        paragraphs = parse_debian_copyright(text)
+    except ValueError:
+        return []
+    return sorted({
+        paragraph["license"].splitlines()[0]
+        for paragraph in paragraphs
+        if paragraph.get("license")
+    })
 
 
-def classify(text: str, tokens: list[str]) -> tuple[str, bool, str]:
-    haystack = "\n".join(tokens) + "\n" + text[:50000]
-    lower = haystack.lower()
-    if "gcc runtime library exception" in lower:
-        return "GPL + GCC Runtime Library Exception", True, "manual review"
-    if "lesser general public license" in lower or re.search(r"\blgpl", lower):
-        return "LGPL or mixed LGPL", True, "yes"
-    if re.search(r"\bgpl", lower) or "general public license" in lower:
-        return "GPL or mixed GPL", True, "yes"
-    permissive = (
-        "mit", "bsd", "isc", "expat", "apache", "zlib", "libpng",
-        "freetype", "bzip2", "unicode", "public domain",
+def ignored_files_stanza(files: str) -> bool:
+    patterns = files.split()
+    return bool(patterns) and all(
+        any(
+            part.rstrip("*").lower() in IGNORED_FILES_PARTS
+            for part in Path(pattern.removeprefix("./")).parts
+        )
+        for pattern in patterns
     )
-    if any(marker in lower for marker in permissive):
-        return "permissive or mixed permissive", True, "no"
-    return "unknown", True, "manual review"
+
+
+def license_family(license_name: str) -> tuple[str, bool, str]:
+    """Return family, manual-review flag, and source requirement."""
+    normalized = " ".join(license_name.lower().split())
+    if not normalized:
+        return "unknown", True, "unknown"
+    if "exception" in normalized:
+        return "GPL-with-exception", True, "unknown"
+    if " or " in normalized:
+        return "dual-license", True, "unknown"
+    if " and " in normalized or "," in normalized:
+        return "mixed", True, "unknown"
+    if re.search(r"lgpl[- ]?3(?:\.0)?(?:\+|-or-later)?", normalized):
+        return "LGPL-3.0", False, "yes"
+    if re.search(r"lgpl[- ]?2\.1(?:\+|-or-later)?", normalized):
+        return "LGPL-2.1+", False, "yes"
+    if re.search(r"gpl[- ]?3(?:\.0)?(?:\+|-or-later)?", normalized):
+        return "GPL-3.0+", False, "yes"
+    if re.search(r"gpl[- ]?2(?:\.0)?(?:\+|-or-later)?", normalized):
+        return "GPL-2.0+", False, "yes"
+    permissive = (
+        "apache", "bsd", "bzip2", "expat", "freetype", "ftl", "isc",
+        "libpng", "mit", "public-domain", "public domain", "unicode", "x11",
+        "zlib",
+    )
+    if any(marker in normalized for marker in permissive):
+        return "permissive", False, "no"
+    return "unknown", True, "unknown"
+
+
+def classify_copyright(text: str, bundled_path: str) -> dict[str, object]:
+    """Classify a bundled library from its applicable DEP-5 file stanza."""
+    basename = Path(bundled_path).name
+    lower_text = text.lower()
+    if basename in {"libgcc_s.so.1", "libstdc++.so.6"}:
+        if "gcc runtime library exception" in lower_text:
+            return {
+                "matched_files_stanza": "GCC runtime metadata",
+                "matched_license": "GPL-3.0+ WITH GCC Runtime Library Exception",
+                "license_family": "GPL-with-exception",
+                "manual_review": True,
+                "source_required": "unknown",
+                "files_stanzas": "[]",
+            }
+        return {
+            "matched_files_stanza": "",
+            "matched_license": "",
+            "license_family": "unknown",
+            "manual_review": True,
+            "source_required": "unknown",
+            "files_stanzas": "[]",
+        }
+
+    try:
+        paragraphs = parse_debian_copyright(text)
+    except ValueError:
+        return {
+            "matched_files_stanza": "",
+            "matched_license": "",
+            "license_family": "unknown",
+            "manual_review": True,
+            "source_required": "unknown",
+            "files_stanzas": "[]",
+        }
+
+    file_stanzas = [
+        {
+            "files": paragraph["files"],
+            "copyright": paragraph.get("copyright", ""),
+            "license": paragraph.get("license", "").splitlines()[0],
+        }
+        for paragraph in paragraphs
+        if "files" in paragraph
+    ]
+    baseline = next(
+        (stanza for stanza in file_stanzas if stanza["files"].strip() == "*"),
+        None,
+    )
+    if baseline is None or not baseline["license"]:
+        return {
+            "matched_files_stanza": "",
+            "matched_license": "",
+            "license_family": "unknown",
+            "manual_review": True,
+            "source_required": "unknown",
+            "files_stanzas": json.dumps(file_stanzas, sort_keys=True),
+        }
+
+    family, manual_review, source_required = license_family(baseline["license"])
+    relevant_overrides = [
+        stanza
+        for stanza in file_stanzas
+        if stanza is not baseline and not ignored_files_stanza(stanza["files"])
+    ]
+    differing_overrides = [
+        stanza for stanza in relevant_overrides
+        if stanza["license"] != baseline["license"]
+    ]
+    if differing_overrides:
+        manual_review = True
+        override_requirements = {
+            license_family(stanza["license"])[2]
+            for stanza in differing_overrides
+        }
+        if override_requirements != {source_required}:
+            source_required = "unknown"
+
+    return {
+        "matched_files_stanza": baseline["files"],
+        "matched_license": baseline["license"],
+        "license_family": family,
+        "manual_review": manual_review,
+        "source_required": source_required,
+        "files_stanzas": json.dumps(file_stanzas, sort_keys=True),
+    }
 
 
 def main() -> None:
@@ -154,9 +321,13 @@ def main() -> None:
                     "source_version": wheel[1],
                     "copyright_file": "",
                     "license_tokens": [],
-                    "license_family": "wheel metadata/manual project inventory",
+                    "matched_files_stanza": "",
+                    "matched_license": "",
+                    "license_family": "manual-review",
+                    "manual_review": True,
                     "notice_required": True,
-                    "source_required": "manual project inventory",
+                    "source_required": "unknown",
+                    "files_stanzas": "[]",
                 })
                 continue
             python_prefix = Path(sys.base_prefix).resolve()
@@ -176,9 +347,13 @@ def main() -> None:
                         "source_version": sys.version.split()[0],
                         "copyright_file": "",
                         "license_tokens": [],
-                        "license_family": "PSF-2.0 and incorporated licenses",
+                        "matched_files_stanza": "CPython distribution",
+                        "matched_license": "PSF-2.0 and incorporated licenses",
+                        "license_family": "permissive",
+                        "manual_review": False,
                         "notice_required": True,
                         "source_required": "no",
+                        "files_stanzas": "[]",
                     })
                     continue
             records.append({
@@ -190,9 +365,13 @@ def main() -> None:
                 "source_version": "",
                 "copyright_file": "",
                 "license_tokens": [],
+                "matched_files_stanza": "",
+                "matched_license": "",
                 "license_family": "unknown (not owned by dpkg)",
+                "manual_review": True,
                 "notice_required": True,
-                "source_required": "manual review",
+                "source_required": "unknown",
+                "files_stanzas": "[]",
             })
             continue
 
@@ -201,7 +380,7 @@ def main() -> None:
             notice = copyright_path(metadata["package"])
             notice_text = notice.read_text(encoding="utf-8", errors="replace") if notice else ""
             tokens = license_tokens(notice_text)
-            family, notice_required, source_required = classify(notice_text, tokens)
+            classification = classify_copyright(notice_text, base["bundle_path"])
             copied_notice = ""
             if notice:
                 safe_name = re.sub(r"[^A-Za-z0-9_.+-]", "_", metadata["package"])
@@ -215,9 +394,8 @@ def main() -> None:
                 "copyright_file": str(notice) if notice else "",
                 "copied_notice": copied_notice,
                 "license_tokens": tokens,
-                "license_family": family,
-                "notice_required": notice_required,
-                "source_required": source_required,
+                **classification,
+                "notice_required": True,
             })
 
     records.sort(key=lambda item: (str(item["bundle_path"]), str(item["package"])))
@@ -228,7 +406,9 @@ def main() -> None:
     columns = [
         "bundle_path", "source_path", "source_realpath", "sha256", "origin", "package",
         "version", "source_package", "source_version", "copyright_file",
-        "copied_notice", "license_family", "notice_required", "source_required",
+        "copied_notice", "license_tokens", "matched_files_stanza", "matched_license",
+        "license_family", "manual_review", "notice_required", "source_required",
+        "files_stanzas",
     ]
     with (args.output / "inventory.tsv").open("w", encoding="utf-8", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=columns, delimiter="\t", extrasaction="ignore")
@@ -239,7 +419,9 @@ def main() -> None:
         (
             str(record["source_package"]),
             str(record["source_version"]),
+            str(record["matched_license"]),
             str(record["license_family"]),
+            str(record["manual_review"]),
             str(record["source_required"]),
         )
         for record in records
@@ -252,7 +434,10 @@ def main() -> None:
     ) as stream:
         writer = csv.writer(stream, delimiter="\t")
         writer.writerow(
-            ("source_package", "source_version", "license_family", "source_required")
+            (
+                "source_package", "source_version", "matched_license", "license_family",
+                "manual_review", "source_required",
+            )
         )
         writer.writerows(source_packages)
 
@@ -311,7 +496,7 @@ def main() -> None:
             record["origin"] == "ubuntu-package"
             and (
                 not record["copyright_file"]
-                or "unknown" in str(record["license_family"])
+                or record["license_family"] == "unknown"
             )
         )
     ]
