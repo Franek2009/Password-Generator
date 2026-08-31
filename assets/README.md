@@ -8,6 +8,10 @@ The application icon is provided in the following formats:
 
 The application icon was designed for Password Generator.
 
+Unless stated otherwise, first-party source code and assets in this
+repository, including the final application icon design, are licensed under
+the repository's MIT License.
+
 The lock symbol used in the icon is
 [Lock Alt by Amanda Moita](https://inkscape.org/~amandamoita/%E2%98%85lock-alt-svgrepo-com),
 licensed under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).

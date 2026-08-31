@@ -1,6 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 from pathlib import Path
+from shutil import copy2, copytree
 import sys
 
 
@@ -76,3 +77,43 @@ coll = COLLECT(
     upx_exclude=[],
     name="PasswordGenerator",
 )
+
+# PyInstaller 6 places normal data files in _internal. Distribution documents
+# are copied after COLLECT so they remain easy to find next to the executable.
+distribution_root = Path(coll.name)
+copy2(PROJECT_ROOT / "LICENSE", distribution_root / "LICENSE")
+copy2(
+    PROJECT_ROOT / "THIRD_PARTY_NOTICES.md",
+    distribution_root / "THIRD_PARTY_NOTICES.md",
+)
+
+common_license_files = (
+    "APACHE-2.0.txt",
+    "GPL-3.0.txt",
+    "LGPL-3.0.txt",
+    "PYTHON-3.14.txt",
+)
+platform_license_files = (
+    (
+        "GCC-RUNTIME-LIBRARY-EXCEPTION-3.1.txt",
+        "ICU-73.2.txt",
+        "LGPL-2.1.txt",
+        "LIBCOM_ERR-1.47.0.txt",
+    )
+    if sys.platform.startswith("linux")
+    else ()
+)
+
+licenses_root = distribution_root / "licenses"
+licenses_root.mkdir(exist_ok=True)
+for license_filename in common_license_files + platform_license_files:
+    copy2(
+        PROJECT_ROOT / "licenses" / license_filename,
+        licenses_root / license_filename,
+    )
+
+if sys.platform.startswith("linux"):
+    copytree(
+        PROJECT_ROOT / "licenses" / "linux-ubuntu-24.04",
+        licenses_root / "linux-ubuntu-24.04",
+    )
