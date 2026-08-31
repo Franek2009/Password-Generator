@@ -2,6 +2,12 @@ name: Package
 
 on:
   workflow_call:
+    inputs:
+      release_tag:
+        description: Release tag used to generate the application version
+        required: false
+        type: string
+        default: ""
   workflow_dispatch:
   push:
     branches:
@@ -44,6 +50,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements-build.txt
 
+      - name: Generate application version
+        env:
+          PASSWORD_GENERATOR_RELEASE_TAG: ${{ inputs.release_tag }}
+        run: python -m app.versioning write --output app/VERSION
+
       - name: Build application
         run: python -m PyInstaller --noconfirm --clean PasswordGenerator.spec
 
@@ -67,6 +78,7 @@ jobs:
           test -x dist/PasswordGenerator/PasswordGenerator
           test -f dist/PasswordGenerator/_internal/data/words.txt
           test -f dist/PasswordGenerator/_internal/assets/icon.png
+          test -f dist/PasswordGenerator/_internal/app/VERSION
 
           if ldd dist/PasswordGenerator/PasswordGenerator | grep -q "not found"; then
             ldd dist/PasswordGenerator/PasswordGenerator
@@ -99,7 +111,8 @@ jobs:
           tar -tzf PasswordGenerator-linux-x86_64.tar.gz \
             PasswordGenerator/PasswordGenerator \
             PasswordGenerator/_internal/data/words.txt \
-            PasswordGenerator/_internal/assets/icon.png
+            PasswordGenerator/_internal/assets/icon.png \
+            PasswordGenerator/_internal/app/VERSION
 
       - name: Upload Linux package
         uses: actions/upload-artifact@v7
@@ -132,6 +145,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements-build.txt
 
+      - name: Generate application version
+        env:
+          PASSWORD_GENERATOR_RELEASE_TAG: ${{ inputs.release_tag }}
+        run: python -m app.versioning write --output app/VERSION
+
       - name: Build application
         run: python -m PyInstaller --noconfirm --clean PasswordGenerator.spec
 
@@ -141,7 +159,8 @@ jobs:
           $requiredFiles = @(
             "dist/PasswordGenerator/PasswordGenerator.exe",
             "dist/PasswordGenerator/_internal/data/words.txt",
-            "dist/PasswordGenerator/_internal/assets/icon.png"
+            "dist/PasswordGenerator/_internal/assets/icon.png",
+            "dist/PasswordGenerator/_internal/app/VERSION"
           )
 
           foreach ($file in $requiredFiles) {
@@ -180,7 +199,8 @@ jobs:
             $requiredEntries = @(
               "PasswordGenerator/PasswordGenerator.exe",
               "PasswordGenerator/_internal/data/words.txt",
-              "PasswordGenerator/_internal/assets/icon.png"
+              "PasswordGenerator/_internal/assets/icon.png",
+              "PasswordGenerator/_internal/app/VERSION"
             )
 
             foreach ($entry in $requiredEntries) {

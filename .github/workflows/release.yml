@@ -16,6 +16,8 @@ jobs:
   packages:
     name: Packages
     uses: ./.github/workflows/package.yml
+    with:
+      release_tag: ${{ github.ref_name }}
 
   release:
     name: Publish release
@@ -96,6 +98,35 @@ jobs:
           fi
 
           echo "No release asset is 2 GiB or larger"
+
+      - name: Validate packaged application versions
+        run: |
+          expected_version=$(python -m app.versioning from-tag "$GITHUB_REF_NAME")
+          linux_version=$(tar -xOf \
+            release-assets/PasswordGenerator-linux-x86_64.tar.gz \
+            PasswordGenerator/_internal/app/VERSION)
+          windows_version=$(python - \
+            release-assets/PasswordGenerator-windows-x86_64.zip <<'PY'
+          import sys
+          from zipfile import ZipFile
+
+          with ZipFile(sys.argv[1]) as archive:
+              version = archive.read(
+                  "PasswordGenerator/_internal/app/VERSION"
+              ).decode("utf-8").strip()
+          print(version)
+          PY
+          )
+
+          echo "Release tag: $GITHUB_REF_NAME"
+          echo "Expected application version: $expected_version"
+          echo "Linux application version: $linux_version"
+          echo "Windows application version: $windows_version"
+
+          python -m app.versioning check \
+            "$GITHUB_REF_NAME" "$linux_version" --artifact Linux
+          python -m app.versioning check \
+            "$GITHUB_REF_NAME" "$windows_version" --artifact Windows
 
       - name: Prepare draft release
         env:

@@ -20,6 +20,7 @@ a = Analysis(
     datas=[
         (str(PROJECT_ROOT / "data" / "words.txt"), "data"),
         (str(PROJECT_ROOT / "assets" / "icon.png"), "assets"),
+        (str(PROJECT_ROOT / "app" / "VERSION"), "app"),
     ],
     hiddenimports=[],
     hookspath=[],
