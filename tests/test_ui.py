@@ -23,6 +23,10 @@ def test_manager_mode_is_selected_by_default(window):
 def test_manager_mode_is_visible_by_default(window):
     assert window.manager_settings.isVisible()
     assert not window.human_settings.isVisible()
+    assert window.manager_numbers_checkbox.isVisible()
+    assert window.manager_special_checkbox.isVisible()
+    assert not window.human_numbers_checkbox.isVisible()
+    assert not window.human_special_checkbox.isVisible()
 
 
 def test_switching_to_human_mode(window):
@@ -31,6 +35,10 @@ def test_switching_to_human_mode(window):
     assert window.mode_combo.currentData() == PasswordMode.HUMAN
     assert not window.manager_settings.isVisible()
     assert window.human_settings.isVisible()
+    assert not window.manager_numbers_checkbox.isVisible()
+    assert not window.manager_special_checkbox.isVisible()
+    assert window.human_numbers_checkbox.isVisible()
+    assert window.human_special_checkbox.isVisible()
 
 
 def test_switching_back_to_manager_mode(window):
@@ -40,6 +48,43 @@ def test_switching_back_to_manager_mode(window):
     assert window.mode_combo.currentData() == PasswordMode.MANAGER
     assert window.manager_settings.isVisible()
     assert not window.human_settings.isVisible()
+
+
+def test_manager_and_human_options_are_independent(window, monkeypatch):
+    generated_configs = []
+
+    def fake_generate(config):
+        generated_configs.append(config)
+        return "generated-password"
+
+    monkeypatch.setattr("app.ui.generate_password_from_config", fake_generate)
+
+    window.manager_numbers_checkbox.setChecked(False)
+    window.manager_special_checkbox.setChecked(False)
+
+    window.mode_combo.setCurrentIndex(1)
+    window.human_numbers_checkbox.setChecked(True)
+    window.human_special_checkbox.setChecked(False)
+    window.generate_button.click()
+
+    human_config = generated_configs[-1]
+    assert human_config.mode == PasswordMode.HUMAN
+    assert human_config.numbers is True
+    assert human_config.special is False
+
+    window.mode_combo.setCurrentIndex(0)
+
+    assert not window.manager_numbers_checkbox.isChecked()
+    assert not window.manager_special_checkbox.isChecked()
+
+    window.generate_button.click()
+
+    manager_config = generated_configs[-1]
+    assert manager_config.mode == PasswordMode.MANAGER
+    assert manager_config.numbers is False
+    assert manager_config.special is False
+    assert window.human_numbers_checkbox.isChecked()
+    assert not window.human_special_checkbox.isChecked()
 
 
 def test_manager_length_slider_updates_label(window):
@@ -124,8 +169,8 @@ def test_generate_manager_password(window):
 def test_manager_mode_generates_password_with_lowercase_only(window):
     window.uppercase_checkbox.setChecked(False)
     window.lowercase_checkbox.setChecked(True)
-    window.numbers_checkbox.setChecked(False)
-    window.special_checkbox.setChecked(False)
+    window.manager_numbers_checkbox.setChecked(False)
+    window.manager_special_checkbox.setChecked(False)
 
     window.length_slider.setValue(20)
     window.generate_button.click()
@@ -140,8 +185,8 @@ def test_manager_mode_generates_password_with_lowercase_only(window):
 def test_manager_mode_generates_password_with_numbers_only(window):
     window.uppercase_checkbox.setChecked(False)
     window.lowercase_checkbox.setChecked(False)
-    window.numbers_checkbox.setChecked(True)
-    window.special_checkbox.setChecked(False)
+    window.manager_numbers_checkbox.setChecked(True)
+    window.manager_special_checkbox.setChecked(False)
 
     window.length_slider.setValue(20)
     window.generate_button.click()
@@ -155,8 +200,8 @@ def test_manager_mode_generates_password_with_numbers_only(window):
 def test_manager_mode_rejects_no_character_sets(window, monkeypatch):
     window.uppercase_checkbox.setChecked(False)
     window.lowercase_checkbox.setChecked(False)
-    window.numbers_checkbox.setChecked(False)
-    window.special_checkbox.setChecked(False)
+    window.manager_numbers_checkbox.setChecked(False)
+    window.manager_special_checkbox.setChecked(False)
 
     messages = []
 
@@ -176,8 +221,8 @@ def test_manager_mode_rejects_no_character_sets(window, monkeypatch):
 def test_human_mode_generates_password(window):
     window.mode_combo.setCurrentIndex(1)
     window.words_slider.setValue(3)
-    window.numbers_checkbox.setChecked(False)
-    window.special_checkbox.setChecked(False)
+    window.human_numbers_checkbox.setChecked(False)
+    window.human_special_checkbox.setChecked(False)
 
     window.generate_button.click()
 
@@ -191,8 +236,8 @@ def test_human_mode_uses_selected_separator(window):
     window.mode_combo.setCurrentIndex(1)
     window.words_slider.setValue(4)
     window.separator_combo.setCurrentText("_")
-    window.numbers_checkbox.setChecked(False)
-    window.special_checkbox.setChecked(False)
+    window.human_numbers_checkbox.setChecked(False)
+    window.human_special_checkbox.setChecked(False)
 
     window.generate_button.click()
 
@@ -207,8 +252,8 @@ def test_human_mode_can_use_random_separator(window):
     window.mode_combo.setCurrentIndex(1)
     window.words_slider.setValue(5)
     window.separator_combo.setCurrentText("Random")
-    window.numbers_checkbox.setChecked(False)
-    window.special_checkbox.setChecked(False)
+    window.human_numbers_checkbox.setChecked(False)
+    window.human_special_checkbox.setChecked(False)
 
     window.generate_button.click()
 
@@ -227,8 +272,8 @@ def test_human_mode_can_use_random_separator(window):
 def test_human_mode_can_include_numbers(window):
     window.mode_combo.setCurrentIndex(1)
     window.words_slider.setValue(3)
-    window.numbers_checkbox.setChecked(True)
-    window.special_checkbox.setChecked(False)
+    window.human_numbers_checkbox.setChecked(True)
+    window.human_special_checkbox.setChecked(False)
 
     window.generate_button.click()
 
@@ -241,8 +286,8 @@ def test_human_mode_can_include_numbers(window):
 def test_human_mode_can_include_special_characters(window):
     window.mode_combo.setCurrentIndex(1)
     window.words_slider.setValue(3)
-    window.numbers_checkbox.setChecked(False)
-    window.special_checkbox.setChecked(True)
+    window.human_numbers_checkbox.setChecked(False)
+    window.human_special_checkbox.setChecked(True)
 
     window.generate_button.click()
 

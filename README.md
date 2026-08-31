@@ -26,10 +26,7 @@ environment.
 
 ## Download
 
-Standalone packages will be published on the
-[GitHub Releases](https://github.com/Franek2009/Password-Generator/releases)
-page. Final links to the v1.0.0 assets will be added after the release is
-published.
+[Download latest release](https://github.com/Franek2009/Password-Generator/releases/latest)
 
 Choose the package for your operating system:
 
@@ -262,7 +259,7 @@ The onedir bundle is written to `dist/PasswordGenerator/`.
 ## Architecture
 
 The project separates application configuration, password generation,
-resource and word-list handling, clipboard access and the graphical interface.
+resource and word-list handling and the graphical interface.
 
 ```text
 User
@@ -286,10 +283,10 @@ GUI / Clipboard
 Password-Generator/
 ├── .github/workflows/
 │   ├── package.yml
+│   ├── release.yml
 │   └── tests.yml
 ├── app/
 │   ├── application.py
-│   ├── clipboard.py
 │   ├── config.py
 │   ├── generator.py
 │   ├── resources.py

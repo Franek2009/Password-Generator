@@ -115,11 +115,11 @@ class MainWindow(QMainWindow):
         self.lowercase_checkbox = QCheckBox("Lowercase")
         self.lowercase_checkbox.setChecked(True)
 
-        self.numbers_checkbox = QCheckBox("Numbers")
-        self.numbers_checkbox.setChecked(True)
+        self.manager_numbers_checkbox = QCheckBox("Numbers")
+        self.manager_numbers_checkbox.setChecked(True)
 
-        self.special_checkbox = QCheckBox("Special characters")
-        self.special_checkbox.setChecked(True)
+        self.manager_special_checkbox = QCheckBox("Special characters")
+        self.manager_special_checkbox.setChecked(True)
 
         character_grid.addWidget(
             self.uppercase_checkbox,
@@ -132,12 +132,12 @@ class MainWindow(QMainWindow):
             1,
         )
         character_grid.addWidget(
-            self.numbers_checkbox,
+            self.manager_numbers_checkbox,
             1,
             0,
         )
         character_grid.addWidget(
-            self.special_checkbox,
+            self.manager_special_checkbox,
             1,
             1,
         )
@@ -211,6 +211,34 @@ class MainWindow(QMainWindow):
         wordlist_layout.addWidget(self.wordlist_combo)
 
         human_layout.addLayout(wordlist_layout)
+
+        options_label = QLabel("Options")
+        options_label.setObjectName("subsection_label")
+
+        human_layout.addWidget(options_label)
+
+        options_grid = QGridLayout()
+        options_grid.setHorizontalSpacing(30)
+        options_grid.setVerticalSpacing(10)
+
+        self.human_numbers_checkbox = QCheckBox("Numbers")
+        self.human_numbers_checkbox.setChecked(True)
+
+        self.human_special_checkbox = QCheckBox("Special characters")
+        self.human_special_checkbox.setChecked(True)
+
+        options_grid.addWidget(
+            self.human_numbers_checkbox,
+            0,
+            0,
+        )
+        options_grid.addWidget(
+            self.human_special_checkbox,
+            0,
+            1,
+        )
+
+        human_layout.addLayout(options_grid)
 
         main_layout.addWidget(self.human_settings)
 
@@ -497,18 +525,24 @@ class MainWindow(QMainWindow):
             QApplication.clipboard().setText(password)
 
     def generate_password(self):
+        mode = self.mode_combo.currentData()
         wordlist_path = None
 
-        if self.mode_combo.currentData() == PasswordMode.HUMAN:
+        if mode == PasswordMode.HUMAN:
             wordlist_path = self.custom_wordlist_path
+            numbers = self.human_numbers_checkbox.isChecked()
+            special = self.human_special_checkbox.isChecked()
+        else:
+            numbers = self.manager_numbers_checkbox.isChecked()
+            special = self.manager_special_checkbox.isChecked()
 
         config = PasswordConfig(
-            mode=self.mode_combo.currentData(),
+            mode=mode,
             length=self.length_slider.value(),
             uppercase=self.uppercase_checkbox.isChecked(),
             lowercase=self.lowercase_checkbox.isChecked(),
-            numbers=self.numbers_checkbox.isChecked(),
-            special=self.special_checkbox.isChecked(),
+            numbers=numbers,
+            special=special,
             words=self.words_slider.value(),
             separator=self.separator_combo.currentText(),
             wordlist_path=wordlist_path,
