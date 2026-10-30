@@ -19,6 +19,14 @@ environment.
 * Copying generated passwords to the clipboard
 * Input validation and clear error messages
 * Standalone Linux and Windows builds
+* Native Android application in Kotlin and Jetpack Compose
+
+## Android
+
+The native Android project is located in [`android/`](android/). It supports
+both generation modes, the built-in Polish word list, custom text word lists
+and clipboard copying. Open that directory in Android Studio to build and run
+the application. See [`android/README.md`](android/README.md) for requirements.
 
 ## Screenshot
 
