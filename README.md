@@ -40,6 +40,7 @@ Choose the package for your operating system:
 
 * `PasswordGenerator-linux-x86_64.tar.gz`
 * `PasswordGenerator-windows-x86_64.zip`
+* `PasswordGenerator-android.apk` (Android 8.0+)
 
 ## Running the Standalone Application
 
@@ -360,3 +361,18 @@ and is licensed under
 [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
 
 If you use this project, attribution is appreciated.
+
+### Android APK and release sources
+
+Releases include `PasswordGenerator-android.apk` for Android 8.0 and newer.
+See [Android signing and installation](android/README.md) for setup.
+Dependency sources and their checksum manifest are distributed together in
+`PasswordGenerator-third-party-sources.tar.gz`; users do not need that archive
+to run the application.
+
+To preview consolidation of the original v1.0.2 source attachments, run
+`python scripts/compact_release.py`. Add `--apply` to download and verify all
+original sources, upload and download-check the combined archive, update the
+release description and only then delete the replaced source attachments.
+Desktop binaries and the release tag are preserved. This requires authenticated
+GitHub CLI access and several GiB of temporary disk space.

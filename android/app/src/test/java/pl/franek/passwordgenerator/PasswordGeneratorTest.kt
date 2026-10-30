@@ -30,4 +30,26 @@ class PasswordGeneratorTest {
         )
         assertEquals(3, password.split("_").size)
     }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun managerRejectsLengthTooShortForSelectedSets() {
+        generator.generateManager(PasswordConfig(length = 3))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun humanRejectsEmptyWordList() {
+        generator.generateHuman(PasswordConfig(mode = PasswordMode.HUMAN), emptyList())
+    }
+
+    @Test
+    fun humanUsesEveryWordBeforeRepeatingWhenListIsShort() {
+        val password = generator.generateHuman(
+            PasswordConfig(mode = PasswordMode.HUMAN, words = 5, separator = "_", numbers = false, special = false),
+            listOf("kot", "pies"),
+        )
+        val words = password.split("_")
+        assertEquals(5, words.size)
+        assertTrue(words.containsAll(listOf("Kot", "Pies")))
+        assertTrue(words.all { it in listOf("Kot", "Pies") })
+    }
 }

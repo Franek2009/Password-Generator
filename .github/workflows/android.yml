@@ -1,6 +1,16 @@
 name: Android APK
 
 on:
+  workflow_call:
+    inputs:
+      release_tag:
+        type: string
+        default: ""
+        required: false
+  pull_request:
+    paths:
+      - "android/**"
+      - ".github/workflows/android.yml"
   workflow_dispatch:
   push:
     branches:
@@ -14,7 +24,7 @@ permissions:
 
 jobs:
   build:
-    name: Build debug APK
+    name: Test and build APK
     runs-on: ubuntu-latest
 
     steps:
@@ -33,11 +43,55 @@ jobs:
         with:
           packages: platform-tools
 
+      - name: Prepare signing key
+        if: inputs.release_tag != ''
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE" && test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS" && test -n "$ANDROID_KEY_PASSWORD"
+          printf '%s' "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/password-generator.jks"
+          chmod 600 "$RUNNER_TEMP/password-generator.jks"
+
       - name: Build and test
         working-directory: android
-        run: ./gradlew test assembleDebug --stacktrace
+        env:
+          PASSWORD_GENERATOR_RELEASE_TAG: ${{ inputs.release_tag }}
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/password-generator.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$PASSWORD_GENERATOR_RELEASE_TAG" ]; then
+            ./gradlew test lintRelease assembleRelease --stacktrace
+            cp app/build/outputs/apk/release/app-release.apk ../PasswordGenerator-android.apk
+            build_tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)
+            "$build_tools/apksigner" verify --verbose ../PasswordGenerator-android.apk
+            "$build_tools/aapt" dump badging ../PasswordGenerator-android.apk > ../apk-metadata.txt
+            expected_code=$(python3 -c 'import os; a,b,c=map(int,os.environ["PASSWORD_GENERATOR_RELEASE_TAG"][1:].split(".")); print(a*1000000+b*1000+c)')
+            grep -F "versionCode='$expected_code'" ../apk-metadata.txt
+            grep -F "versionName='${PASSWORD_GENERATOR_RELEASE_TAG#v}'" ../apk-metadata.txt
+          else
+            ./gradlew test assembleDebug --stacktrace
+          fi
+
+      - name: Remove signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/password-generator.jks"
+
+      - name: Upload release APK
+        if: inputs.release_tag != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: PasswordGenerator-android.apk
+          path: PasswordGenerator-android.apk
+          if-no-files-found: error
 
       - name: Upload APK
+        if: inputs.release_tag == ''
         uses: actions/upload-artifact@v4
         with:
           name: PasswordGenerator-android-debug

@@ -43,7 +43,10 @@ jobs:
             libgl1 \
             libdbus-1-3 \
             libxkbcommon-x11-0 \
-            libxcb-cursor0
+            libxcb-cursor0 \
+            libxcb-shape0 \
+            libxcb-icccm4 \
+            libxcb-keysyms1
 
       - name: Install build dependencies
         run: |
@@ -64,6 +67,20 @@ jobs:
             --toc build/PasswordGenerator/COLLECT-00.toc \
             --bundle dist/PasswordGenerator \
             --output build/linux-license-audit
+
+      - name: Preserve audited runtime notices
+        run: |
+          python - <<'PYTHON'
+          import csv
+          from pathlib import Path
+          from shutil import copy2
+          audit = Path("build/linux-license-audit")
+          target = Path("dist/PasswordGenerator/licenses/linux-ubuntu-24.04")
+          with (audit / "inventory.tsv").open() as stream:
+              for row in csv.DictReader(stream, delimiter="\t"):
+                  if row["origin"] == "ubuntu-package":
+                      copy2(audit / row["copied_notice"], target / (row["source_package"] + ".txt"))
+          PYTHON
 
       - name: Upload Linux license audit
         if: always()

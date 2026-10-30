@@ -24,8 +24,9 @@ License texts:
 Upstream: <https://www.qt.io/> and
 <https://doc.qt.io/qtforpython-6/>.
 
-The v1.0.0 GitHub Release must provide the following Corresponding Source
-beside every binary package, at no additional charge:
+Each GitHub Release provides the following Corresponding Source in
+`PasswordGenerator-third-party-sources.tar.gz`, with a checksum manifest,
+beside the binary packages at no additional charge:
 
 - `qt-everywhere-src-6.11.2.tar.xz`
   (`6dcfbca271d76a6502741a2c0dc6fc98ef7dd0b7b4cfd0abcebb285a86a26f33`)

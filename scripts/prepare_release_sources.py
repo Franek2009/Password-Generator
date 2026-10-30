@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Download and verify the corresponding-source assets for v1.0.0."""
+"""Download and verify the corresponding-source assets for a release."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import argparse
 import csv
 import hashlib
 from pathlib import Path
+import re
 import urllib.request
 
 
@@ -36,17 +37,17 @@ UBUNTU_SOURCES = (
     ("fribidi", "1.0.13-3build1", "main/f/fribidi", "2df939e37ac9c71ed8de3c1dd55641f069fd2ed1bfa162e2ce03c819084ddbd1"),
     ("gcc-14", "14.2.0-4ubuntu2~24.04.1", "main/g/gcc-14", "50950080874a6ec6780dd60c243e21d9cda9d736bb32bca98d16095d27cc01b5"),
     ("gdk-pixbuf", "2.42.10+dfsg-3ubuntu3.3", "main/g/gdk-pixbuf", "b86025ff9d9ff4e39ec4b1773f23648f18556d154867e28b2f8fc1e589be80d0"),
-    ("glib2.0", "2.80.0-6ubuntu3.8", "main/g/glib2.0", "d44112b09956f61ffd5790a1a40e42558dca287052a945078cffff9b2490ee84"),
+    ("glib2.0", "2.80.0-6ubuntu3.10", "main/g/glib2.0", "0ee18e055f5fba9a33763f94823b44ab38e4f677f625ba7540486fe03b436136"),
     ("graphite2", "1.3.14-2ubuntu0.24.04.1", "main/g/graphite2", "c34a4358cdadcf881fe9794e13c27650f1c5de7bcd3aaf9a40a908047c4d44b4"),
     ("gtk+3.0", "3.24.41-4ubuntu1.3", "main/g/gtk+3.0", "b7ea9dda7ffd3f01f97d7ee673f130a82db5b346ade2d003e609e27886b35269"),
     ("keyutils", "1.6.3-3build1", "main/k/keyutils", "d81679165d93bfcadd5bf3fdca123ce0e4562e2ad9712aa2b9d8c2d1c701324d"),
     ("libdatrie", "0.2.13-3build1", "main/libd/libdatrie", "9d4bef261b1f1a5abd62c99ecdee5cd8b5dc09987b13d1ba1b66a73f1b1f0c6f"),
-    ("libgcrypt20", "1.10.3-2ubuntu0.1", "main/libg/libgcrypt20", "ba9c5634309500f0248f9e648faa60e762238a47505ec037f451790a12d3c092"),
+    ("libgcrypt20", "1.10.3-2ubuntu0.2", "main/libg/libgcrypt20", "688df10bc9c90b241926470d1f12a4d5092157263a6c1555996c53bcf40ca7d1"),
     ("libgpg-error", "1.47-3build2.1", "main/libg/libgpg-error", "3c8abf463c9ade945fe2e9d87c4aa2bff0026964207b07e99432d9ef6d9436d8"),
     ("libthai", "0.1.29-2build1", "main/libt/libthai", "a20705f03af7fca8f1bbed128e09020ed958f1bd092859e9133c6c600401a5e5"),
     ("pango1.0", "1.52.1+ds-1build1", "main/p/pango1.0", "faad8d9f21cdd77fb7c930f46506dc304fd66c49c6c5f9bb5d92a8bdc55ec744"),
-    ("systemd", "255.4-1ubuntu8.17", "main/s/systemd", "8e5f4e5a7b7ee457214be1efd1ea1d380186c38b146d8c98af5da0f625d3c396"),
-    ("util-linux", "2.39.3-9ubuntu6.5", "main/u/util-linux", "206b6fb92d3cb0f6b1a959a6173d81ebf4e0a340564378ac49667a16968578d8"),
+    ("systemd", "255.4-1ubuntu8.18", "main/s/systemd", "04154737afced0898fc7966b85e88505fb3a17f46c8c7079576d022cdeb67304"),
+    ("util-linux", "2.39.3-9ubuntu6.6", "main/u/util-linux", "b30cb22e05473810a48e14db8b5ea7786bb38aed7617dc89ad4f81cd7c6c3397"),
 )
 
 
@@ -153,9 +154,10 @@ def download_ubuntu_source(
 def write_manifest(
     output: Path,
     records: list[tuple[Path, str, str, str]],
+    release_tag: str,
 ) -> None:
     lines = [
-        "Password Generator v1.0.0 - Corresponding Source Assets",
+        f"Password Generator {release_tag} - Corresponding Source Assets",
         "========================================================",
         "",
     ]
@@ -184,7 +186,10 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--audit-source-packages", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--release-tag", required=True)
     args = parser.parse_args()
+    if not re.fullmatch(r"v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", args.release_tag):
+        parser.error("release tag must be vMAJOR.MINOR.PATCH")
     verify_audit_source_versions(args.audit_source_packages)
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -200,7 +205,7 @@ def main() -> None:
 
     if len(records) != 53:
         raise RuntimeError(f"Expected 53 source files, got {len(records)}")
-    write_manifest(output, records)
+    write_manifest(output, records, args.release_tag)
 
 
 if __name__ == "__main__":

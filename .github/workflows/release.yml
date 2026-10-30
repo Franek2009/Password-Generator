@@ -13,6 +13,13 @@ jobs:
     name: Tests
     uses: ./.github/workflows/tests.yml
 
+  android:
+    name: Android
+    uses: ./.github/workflows/android.yml
+    with:
+      release_tag: ${{ github.ref_name }}
+    secrets: inherit
+
   packages:
     name: Packages
     uses: ./.github/workflows/package.yml
@@ -24,6 +31,7 @@ jobs:
     needs:
       - tests
       - packages
+      - android
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -50,6 +58,12 @@ jobs:
           path: release-assets
           skip-decompress: true
 
+      - name: Download Android APK
+        uses: actions/download-artifact@v8
+        with:
+          name: PasswordGenerator-android.apk
+          path: release-assets
+
       - name: Download Linux license audit
         uses: actions/download-artifact@v8
         with:
@@ -60,14 +74,21 @@ jobs:
         run: |
           python scripts/prepare_release_sources.py \
             --audit-source-packages release-audit/source-packages.tsv \
-            --output release-sources
+            --output release-sources \
+            --release-tag "$GITHUB_REF_NAME"
+
+      - name: Package verified dependency sources
+        run: |
+          python scripts/source_archive.py --sources release-sources \
+            --output release-assets/PasswordGenerator-third-party-sources.tar.gz
 
       - name: Validate release assets
         run: |
           required_assets=(
             release-assets/PasswordGenerator-linux-x86_64.tar.gz
             release-assets/PasswordGenerator-windows-x86_64.zip
-            release-sources/SOURCE_ASSETS_MANIFEST.txt
+            release-assets/PasswordGenerator-android.apk
+            release-assets/PasswordGenerator-third-party-sources.tar.gz
           )
 
           for asset in "${required_assets[@]}"; do
@@ -128,6 +149,23 @@ jobs:
           python -m app.versioning check \
             "$GITHUB_REF_NAME" "$windows_version" --artifact Windows
 
+      - name: Prepare release notes
+        run: |
+          python - <<'PYTHON'
+          import os
+          from pathlib import Path
+          tag = os.environ["GITHUB_REF_NAME"]
+          base = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{tag}"
+          entries = [
+              ("Android APK (Android 8.0+)", "PasswordGenerator-android.apk"),
+              ("Windows x86-64", "PasswordGenerator-windows-x86_64.zip"),
+              ("Linux x86-64", "PasswordGenerator-linux-x86_64.tar.gz"),
+          ]
+          text = "## Download\n\n" + "\n".join(f"- [{label}]({base}/{name})" for label, name in entries)
+          text += f"\n\n## Third-party sources\n\n[Complete sources and checksum manifest]({base}/PasswordGenerator-third-party-sources.tar.gz). Not required to run the application.\n"
+          Path("release-notes.md").write_text(text, encoding="utf-8")
+          PYTHON
+
       - name: Prepare draft release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -140,12 +178,13 @@ jobs:
             fi
 
             echo "Reusing existing draft release $GITHUB_REF_NAME"
+            gh release edit "$GITHUB_REF_NAME" --notes-file release-notes.md
           else
             gh release create "$GITHUB_REF_NAME" \
               --verify-tag \
               --draft \
               --title "$GITHUB_REF_NAME" \
-              --generate-notes
+              --notes-file release-notes.md
           fi
 
       - name: Upload release assets
@@ -153,7 +192,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mapfile -d '' assets < <(
-            find release-assets release-sources \
+            find release-assets \
               -type f -print0 | sort -z
           )
 

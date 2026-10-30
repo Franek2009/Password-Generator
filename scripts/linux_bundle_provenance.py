@@ -108,6 +108,12 @@ IGNORED_FILES_PARTS = {
 # by the Ubuntu 24.04 license-audit artifact. These apply only when DEP-5 data
 # does not provide a baseline Files/License stanza for the bundled runtime.
 LEGACY_PACKAGE_LICENSES = {
+    # Verified byte-for-byte against notices in the 2026-10-30 CI audit.
+    ("libx11", "2:1.8.7-1ubuntu0.1"): ("MIT/X11", "permissive", False, "no"),
+    ("libgcrypt20", "1.10.3-2ubuntu0.2"): ("LGPL-2.1+", "LGPL-2.1+", False, "yes"),
+    ("krb5", "1.20.1-6ubuntu2.10"): (
+        "MIT Kerberos and permissive component licenses", "mixed", True, "unknown"
+    ),
     ("cairo", "1.18.0-3build1"): (
         "LGPL-2.1 or MPL-1.1", "dual-license", True, "unknown"
     ),
