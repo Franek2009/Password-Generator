@@ -4,26 +4,20 @@ Natywna wersja aplikacji w Kotlinie i Jetpack Compose. Wymaga Android Studio,
 JDK 17 oraz Android SDK 35. Minimalna obsługiwana wersja systemu to Android 8.0
 (API 26).
 
-## Pobieranie: nowe UI czy stabilne wydanie?
+## Pobierz v1.1.0 — nowy interfejs
 
-**Nowy interfejs v1.1.0 jest już na głównej gałęzi `master`.**
-Publiczne wydanie v1.0.4 nadal ma stare UI; do czasu publikacji v1.1.0
-nowy wygląd jest dostępny w podpisanym APK podglądowym.
+[Pobierz APK v1.1.0](https://github.com/Franek2009/Password-Generator/releases/download/v1.1.0/PasswordGenerator-android.apk)
+bezpośrednio z [publicznego wydania](https://github.com/Franek2009/Password-Generator/releases/tag/v1.1.0). Logowanie do GitHuba
+nie jest wymagane. Zainstaluj plik APK jako aktualizację aplikacji.
 
-- [Pobierz podpisane APK podglądowe v1.1.0](https://github.com/Franek2009/Password-Generator/actions/runs/41237143305/artifacts/13055587407).
-  Zaloguj się do GitHuba, pobierz artefakt, rozpakuj ZIP i zainstaluj zawarte
-  w nim `PasswordGenerator-android.apk`. To aktualizacja v1.0.4 z tym samym kluczem.
-- [Stabilne APK v1.0.4 — poprzedni interfejs](https://github.com/Franek2009/Password-Generator/releases/download/v1.0.4/PasswordGenerator-android.apk).
-
-W informacjach o aplikacji podgląd ma wersję **1.1.0** (kod **1001000**).
-Artefakty Actions mają ograniczony czas dostępności; instrukcja ponownego
-budowania podglądu znajduje się na końcu tego dokumentu.
+W informacjach o aplikacji powinno być **1.1.0**, kod wersji **1001000**.
+APK korzysta z dotychczasowego klucza podpisywania, więc aktualizuje v1.0.4.
 
 ## Zrzuty nowego interfejsu
 
 | Ciemny motyw | Jasny motyw |
 | --- | --- |
-| ![Android — podgląd ciemny](../docs/ui-preview/android-dark-random.png) | ![Android — podgląd jasny](../docs/ui-preview/android-light-random.png) |
+| ![Android v1.1.0 — ciemny motyw](../docs/ui-preview/android-dark-random.png) | ![Android v1.1.0 — jasny motyw](../docs/ui-preview/android-light-random.png) |
 
 [Pełna galeria telefonu i desktopu, ustawień oraz fraz słownych](../docs/ui-preview/README.md).
 
@@ -74,7 +68,7 @@ na instalowanie aplikacji z tego źródła. Wymagany jest Android 8.0 lub nowszy
 Przejście z wersji debug może wymagać odinstalowania starej aplikacji,
 ponieważ jest podpisana innym kluczem.
 
-## Podgląd nowego interfejsu v1.1.0
+## Interfejs i testy UI v1.1.0
 
 Ekran generatora i ustawień używa wspólnych tekstów PL/EN i kolorów z desktopem.
 Preferencje zapisuje SharedPreferences. Bieżące hasło jest wyłącznie w ViewModel,
@@ -95,7 +89,9 @@ skrypt ponownie instaluje te same APK i eksportuje zrzuty przed usunięciem dany
 Zrzuty używają publicznych danych przykładowych. Galeria obu platform jest
 w `docs/ui-preview/`; kod nowego UI został scalony do `master`.
 
-Podpisany podgląd bez publikowania wydania można zbudować ręcznie w workflow
-**Android APK**, wskazując gałąź `master` i pole `release_tag`, np. `v1.1.0`. APK używa
+Deweloperski podpisany podgląd kolejnej wersji bez publikowania wydania można
+zbudować ręcznie w workflow
+**Android APK**, wskazując gałąź `master` i planowany tag kolejnego wydania
+w polu `release_tag`. APK używa
 tego samego identyfikatora i klucza co wydania, więc aktualizuje aplikację.
 Nie tworzy tagu Git ani wpisu w Releases.
