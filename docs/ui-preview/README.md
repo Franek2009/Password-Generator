@@ -26,9 +26,10 @@ without storing the current result, and screenshot capture. The instrumented sui
 in [the final UI verification run](https://github.com/Franek2009/Password-Generator/actions/runs/41237602489). Windows/Linux package builds
 passed for the implementation branch.
 
-Recreate desktop previews with:
+Recreate desktop previews from the preview branch:
 
 ```bash
+git switch ui/unified-interface
 QT_QPA_PLATFORM=offscreen python scripts/preview_desktop.py
 ```
 
@@ -49,10 +50,25 @@ no password history.
 
 This is a review build. Publishing v1.1.0 follows visual approval.
 
+## Which download contains these screens?
+
+The screenshots on this page show **the v1.1.0 UI preview**. Public stable
+[v1.0.4](https://github.com/Franek2009/Password-Generator/releases/tag/v1.0.4)
+still has the previous UI.
+
+- [Android preview APK artifact](https://github.com/Franek2009/Password-Generator/actions/runs/41237143305/artifacts/13055587407)
+- [Linux preview artifact](https://github.com/Franek2009/Password-Generator/actions/runs/41190912554/artifacts/13037984990)
+- [Windows preview artifact](https://github.com/Franek2009/Password-Generator/actions/runs/41190912554/artifacts/13039125190)
+
+All preview artifacts require GitHub login and have limited retention. Desktop
+previews report a development version. The Android preview reports 1.1.0.
+
 ## Signed Android preview
 
-[Download the APK artifact from the signed preview build](https://github.com/Franek2009/Password-Generator/actions/runs/41237143305).
-GitHub login is required to download Actions artifacts. The local review copy
+[Download the signed APK artifact](https://github.com/Franek2009/Password-Generator/actions/runs/41237143305/artifacts/13055587407).
+Sign in to GitHub, download the artifact, extract the ZIP and install the
+enclosed `PasswordGenerator-android.apk`. GitHub login is required.
+The local review copy
 is `dist/PasswordGenerator-v1.1.0-preview.apk`.
 
 The APK reports version `1.1.0`, version code `1001000`, and uses the same
