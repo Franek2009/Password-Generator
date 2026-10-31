@@ -5,6 +5,9 @@ The application icon is provided in the following formats:
 - `icon.svg` is the editable master.
 - `icon.png` is the runtime icon used by Qt and Linux builds.
 - `icon.ico` is the Windows executable icon.
+- Android uses a copy of `icon.png` in `android/app/src/main/res/drawable-nodpi/`,
+  displayed by an adaptive launcher icon with a green background. Keep this
+  copy synchronized when updating the master icon.
 
 The application icon was designed for Password Generator.
 
