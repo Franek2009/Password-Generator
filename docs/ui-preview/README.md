@@ -1,4 +1,4 @@
-# Unified interface preview — v1.1.0
+# Unified interface — v1.1.0
 
 This preview follows the supplied desktop/Android reference. The existing
 password-generation defaults (20 characters, 3 words, `-`) are retained.
@@ -26,10 +26,9 @@ without storing the current result, and screenshot capture. The instrumented sui
 in [the final UI verification run](https://github.com/Franek2009/Password-Generator/actions/runs/41237602489). Windows/Linux package builds
 passed for the implementation branch.
 
-Recreate desktop previews from the preview branch:
+Recreate desktop previews from `master`:
 
 ```bash
-git switch ui/unified-interface
 QT_QPA_PLATFORM=offscreen python scripts/preview_desktop.py
 ```
 
@@ -48,7 +47,8 @@ and SharedPreferences; passwords are never written to those stores. Android
 keeps the current result in a ViewModel during configuration changes. There is
 no password history.
 
-This is a review build. Publishing v1.1.0 follows visual approval.
+The UI implementation is merged into `master`. The APK below is a signed
+preview; the public v1.1.0 Release has not yet been published.
 
 ## Which download contains these screens?
 

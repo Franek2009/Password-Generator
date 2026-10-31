@@ -29,11 +29,11 @@ both generation modes, the built-in Polish word list, custom text word lists
 and clipboard copying. Open that directory in Android Studio to build and run
 the application. See [`android/README.md`](android/README.md) for requirements.
 
-## Download: stable or new UI preview?
+## Download — current UI v1.1.0
 
-**The public stable release is v1.0.4 and still has the previous interface.**
-To try the redesigned desktop/Android interface shown below, choose the
-**v1.1.0 UI preview**, not the stable release.
+**The new v1.1.0 interface is already merged into `master`.**
+The latest published release is still v1.0.4 and has the previous interface.
+Until v1.1.0 is published, use the signed preview downloads below for the new UI.
 
 ### New UI preview — v1.1.0
 
@@ -50,9 +50,9 @@ The signed Android preview updates v1.0.4 using the same signing key.
 Desktop preview packages identify themselves as development builds.
 
 Actions artifacts have limited retention. If a link expires, use the
-[preview build instructions](https://github.com/Franek2009/Password-Generator/blob/ui/unified-interface/android/README.md#podgląd-nowego-interfejsu-v110)
+[preview build instructions](https://github.com/Franek2009/Password-Generator/blob/master/android/README.md#podgląd-nowego-interfejsu-v110)
 or the [preview PR](https://github.com/Franek2009/Password-Generator/pull/1).
-No public v1.1.0 Release has been published; visual review is in progress.
+The UI implementation is on `master`; a public v1.1.0 Release has not yet been published.
 
 ### Stable v1.0.4 — previous UI
 
@@ -65,7 +65,7 @@ No public v1.1.0 Release has been published; visual review is in progress.
 [Stable release details](https://github.com/Franek2009/Password-Generator/releases/tag/v1.0.4).
 These files do **not** contain the redesigned UI.
 
-## Screenshots — new UI preview
+## Screenshots — current interface
 
 These are actual captures of the redesigned interface, **not screenshots of
 stable v1.0.4**. Example passwords are public demonstration strings.
@@ -222,12 +222,7 @@ git clone git@github.com:Franek2009/Password-Generator.git
 cd Password-Generator
 ```
 
-For the redesigned interface, check out the preview branch before installing
-and running:
-
-```bash
-git switch ui/unified-interface
-```
+The default `master` branch contains the redesigned interface; no branch switch is needed.
 
 Create a virtual environment:
 
@@ -425,7 +420,7 @@ release description and only then delete the replaced source attachments.
 Desktop binaries and the release tag are preserved. This requires authenticated
 GitHub CLI access and several GiB of temporary disk space.
 
-## Preview interface settings
+## Interface settings
 
 The redesigned desktop and Android interfaces use **Random password** and
 **Passphrase** tabs, a result field with a copy action and a green Generate
@@ -440,4 +435,4 @@ Custom word lists remain selectable as UTF-8 text files. If a saved list becomes
 unavailable, the app reports it and returns to the built-in Polish list.
 Android's clipboard marks copied passwords as sensitive on Android 13+.
 
-See the [review gallery and validation notes](https://github.com/Franek2009/Password-Generator/blob/ui/unified-interface/docs/ui-preview/README.md).
+See the [review gallery and validation notes](https://github.com/Franek2009/Password-Generator/blob/master/docs/ui-preview/README.md).
