@@ -1,0 +1,57 @@
+name: Android UI
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'android/**'
+      - 'data/ui.json'
+      - 'scripts/android_ui_checks.sh'
+      - '.github/workflows/android-ui.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-ui-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ui:
+    name: UI on Android API ${{ matrix.api }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [26, 35]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - name: Enable emulator acceleration
+        run: |
+          sudo chmod 666 /dev/kvm
+      - name: Instrumented UI tests and screenshots
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: bash scripts/android_ui_checks.sh
+      - name: Upload UI reports and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-UI-api-${{ matrix.api }}
+          path: |
+            android/app/build/reports/androidTests/
+            android/app/build/outputs/androidTest-results/
+            build/android-ui-preview/
+          if-no-files-found: error

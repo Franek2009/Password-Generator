@@ -2,8 +2,8 @@ import secrets
 import string
 
 from app.config import PasswordConfig, PasswordMode
+from app.errors import GenerationError
 from app.wordlist import load_wordlist, load_words
-
 
 RANDOM_SEPARATORS = ["-", "_", ".", " ", "/", "|"]
 
@@ -14,10 +14,7 @@ def _select_words(words: list[str], count: int) -> list[str]:
 
     selected_words = list(words)
 
-    selected_words.extend(
-        secrets.choice(words)
-        for _ in range(count - len(words))
-    )
+    selected_words.extend(secrets.choice(words) for _ in range(count - len(words)))
 
     secrets.SystemRandom().shuffle(selected_words)
 
@@ -31,12 +28,9 @@ def _generate_human_password(config: PasswordConfig) -> str:
         words = load_words()
 
     if not words:
-        raise ValueError("Word list cannot be empty.")
+        raise GenerationError("empty_words", "Word list cannot be empty.")
 
-    selected_words = [
-        word.capitalize()
-        for word in _select_words(words, config.words)
-    ]
+    selected_words = [word.capitalize() for word in _select_words(words, config.words)]
 
     if config.separator == "Random":
         separator = secrets.choice(RANDOM_SEPARATORS)
@@ -55,9 +49,9 @@ def _generate_human_password(config: PasswordConfig) -> str:
         )
 
         if not special_characters:
-            raise ValueError(
-                "No special characters available for the selected "
-                "separator."
+            raise GenerationError(
+                "invalid_separator",
+                "No special characters available for the selected separator.",
             )
 
         parts.append(secrets.choice(special_characters))
@@ -87,16 +81,12 @@ def _generate_manager_password(config: PasswordConfig) -> str:
     if config.special:
         character_sets.append(string.punctuation)
 
-    password = [
-        secrets.choice(character_set)
-        for character_set in character_sets
-    ]
+    password = [secrets.choice(character_set) for character_set in character_sets]
 
     all_characters = "".join(character_sets)
 
     password += [
-        secrets.choice(all_characters)
-        for _ in range(config.length - len(password))
+        secrets.choice(all_characters) for _ in range(config.length - len(password))
     ]
 
     secrets.SystemRandom().shuffle(password)

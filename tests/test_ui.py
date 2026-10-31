@@ -5,11 +5,17 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 from app.config import PasswordMode
 from app.generator import RANDOM_SEPARATORS
 from app.ui import MainWindow
+from app.presentation import Preferences
+from PySide6.QtCore import QSettings
 
 
 @pytest.fixture
-def window(qtbot):
-    window = MainWindow()
+def window(qtbot, tmp_path):
+    preferences = Preferences(
+        QSettings(str(tmp_path / "settings.ini"), QSettings.IniFormat)
+    )
+    preferences.set("language", "en")
+    window = MainWindow(preferences)
     qtbot.addWidget(window)
     window.show()
     qtbot.waitExposed(window)
@@ -120,7 +126,7 @@ def test_human_words_slider_has_expected_default(window):
 
 def test_separator_combo_contains_supported_separators(window):
     separators = [
-        window.separator_combo.itemText(index)
+        window.separator_combo.itemData(index)
         for index in range(window.separator_combo.count())
     ]
 
@@ -144,15 +150,15 @@ def test_wordlist_combo_has_builtin_and_custom_options(window):
     ]
 
     assert "Built-in Polish" in options
-    assert "Custom..." in options
+    assert "Choose file…" in options
 
 
 def test_generate_button_exists(window):
-    assert window.generate_button.text() == "Generate"
+    assert window.generate_button.text() == "Generate password"
 
 
 def test_copy_button_exists(window):
-    assert window.copy_button.text() == "Copy"
+    assert window.copy_button.accessibleName() == "Copy password"
 
 
 def test_generate_manager_password(window):
@@ -203,19 +209,10 @@ def test_manager_mode_rejects_no_character_sets(window, monkeypatch):
     window.manager_numbers_checkbox.setChecked(False)
     window.manager_special_checkbox.setChecked(False)
 
-    messages = []
-
-    def fake_warning(*args):
-        messages.append(args)
-
-    monkeypatch.setattr(QMessageBox, "warning", fake_warning)
-
     window.generate_button.click()
-
     assert window.password_field.text() == ""
-    assert len(messages) == 1
-    assert messages[0][1] == "Invalid configuration"
-    assert messages[0][2] == "At least one character set must be enabled."
+    assert window.status.isVisible()
+    assert window.status.text() == "Select at least one character set."
 
 
 def test_human_mode_generates_password(window):
@@ -259,11 +256,7 @@ def test_human_mode_can_use_random_separator(window):
 
     password = window.password_field.text()
 
-    separators = [
-        char
-        for char in password
-        if char in RANDOM_SEPARATORS
-    ]
+    separators = [char for char in password if char in RANDOM_SEPARATORS]
 
     assert separators
     assert len(set(separators)) == 1
@@ -294,10 +287,7 @@ def test_human_mode_can_include_special_characters(window):
     password = window.password_field.text()
 
     assert password
-    assert any(
-        char in "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
-        for char in password
-    )
+    assert any(char in "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~" for char in password)
 
 
 def test_copy_button_copies_password_to_clipboard(window):
@@ -352,8 +342,85 @@ def test_password_field_is_read_only(window):
 
 
 def test_generate_button_has_correct_text(window):
-    assert window.generate_button.text() == "Generate"
+    assert window.generate_button.text() == "Generate password"
 
 
 def test_copy_button_has_correct_text(window):
-    assert window.copy_button.text() == "Copy"
+    assert window.copy_button.accessibleName() == "Copy password"
+
+
+def test_number_field_and_slider_stay_synchronized(window):
+    window.length_spin.setValue(48)
+    assert window.length_slider.value() == 48
+    window.words_slider.setValue(7)
+    assert window.words_spin.value() == 7
+
+
+def test_copy_disabled_until_password_exists(window):
+    assert not window.copy_button.isEnabled()
+    window.generate_button.click()
+    assert window.copy_button.isEnabled()
+    window.password_field.clear()
+    assert not window.copy_button.isEnabled()
+
+
+def test_automatic_copy_is_optional(window):
+    QApplication.clipboard().clear()
+    window.generate_button.click()
+    assert QApplication.clipboard().text() == ""
+    window.set_preference("auto_copy", True)
+    window.generate_button.click()
+    assert QApplication.clipboard().text() == window.password_field.text()
+
+
+def test_language_and_theme_changes_preserve_result_and_configuration(window):
+    window.length_spin.setValue(35)
+    window.generate_button.click()
+    password = window.password_field.text()
+    window.open_settings()
+    window.set_preference("language", "pl")
+    window.set_preference("theme", "dark")
+    assert window.tabs.tabText(0) == "Losowe hasło"
+    assert window.generate_button.text() == "Generuj hasło"
+    assert window._settings_dialog.windowTitle() == "Ustawienia"
+    assert window.password_field.text() == password
+    assert window.length_spin.value() == 35
+    assert window.colors["background"] == "#101819"
+    window.set_preference("theme", "light")
+    assert window.colors["background"] == "#F5F6F3"
+
+
+def test_preferences_restart_without_password_history(window, qtbot):
+    window.length_spin.setValue(42)
+    window.set_preference("auto_copy", True)
+    window.set_preference("language", "pl")
+    window.generate_button.click()
+    replacement = MainWindow(Preferences(window.preferences.store))
+    qtbot.addWidget(replacement)
+    assert replacement.length_spin.value() == 42
+    assert replacement.preferences.values["auto_copy"]
+    assert replacement.generate_button.text() == "Generuj hasło"
+    assert replacement.password_field.text() == ""
+    assert "password" not in window.preferences.store.allKeys()
+
+
+def test_cancelled_or_invalid_wordlist_keeps_previous_selection(
+    window, tmp_path, monkeypatch
+):
+    from PySide6.QtWidgets import QFileDialog
+
+    words = tmp_path / "words.txt"
+    words.write_text("kot\npies\n", encoding="utf-8")
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *args: (str(words), ""))
+    window.wordlist_combo.setCurrentIndex(window.wordlist_combo.count() - 1)
+    assert window.custom_wordlist_path == str(words)
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *args: ("", ""))
+    window.wordlist_combo.setCurrentIndex(window.wordlist_combo.count() - 1)
+    assert window.custom_wordlist_path == str(words)
+    monkeypatch.setattr(
+        QFileDialog,
+        "getOpenFileName",
+        lambda *args: (str(tmp_path / "missing.txt"), ""),
+    )
+    window.wordlist_combo.setCurrentIndex(window.wordlist_combo.count() - 1)
+    assert window.custom_wordlist_path == str(words)

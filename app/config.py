@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
 
+from app.errors import GenerationError
+
 
 class PasswordMode(Enum):
     HUMAN = "human"
@@ -36,12 +38,12 @@ class PasswordConfig:
         elif self.mode == PasswordMode.HUMAN:
             self._validate_human()
         else:
-            raise ValueError("Unsupported password mode.")
+            raise GenerationError("unknown_error", "Unsupported password mode.")
 
     def _validate_manager(self) -> None:
         if self.length < 1:
-            raise ValueError(
-                "Password length must be at least 1."
+            raise GenerationError(
+                "invalid_length", "Password length must be at least 1."
             )
 
         character_sets_enabled = sum(
@@ -54,28 +56,26 @@ class PasswordConfig:
         )
 
         if character_sets_enabled == 0:
-            raise ValueError(
-                "At least one character set must be enabled."
+            raise GenerationError(
+                "no_sets", "At least one character set must be enabled."
             )
 
         if self.length < character_sets_enabled:
-            raise ValueError(
-                "Password length is too short for the selected "
-                "character sets."
+            raise GenerationError(
+                "short_length",
+                "Password length is too short for the selected character sets.",
             )
 
     def _validate_human(self) -> None:
         if self.words < 1:
-            raise ValueError(
-                "Number of words must be at least 1."
+            raise GenerationError(
+                "invalid_words", "Number of words must be at least 1."
             )
 
         if not self.separator:
-            raise ValueError(
-                "Separator cannot be empty."
-            )
+            raise GenerationError("invalid_separator", "Separator cannot be empty.")
 
         if self.separator not in SUPPORTED_SEPARATORS:
-            raise ValueError(
-                f"Unsupported separator: {self.separator}"
+            raise GenerationError(
+                "invalid_separator", f"Unsupported separator: {self.separator}"
             )
