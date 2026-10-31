@@ -29,21 +29,22 @@ both generation modes, the built-in Polish word list, custom text word lists
 and clipboard copying. Open that directory in Android Studio to build and run
 the application. See [`android/README.md`](android/README.md) for requirements.
 
-## Download v1.1.0
+## Download
 
-**v1.1.0 includes the unified desktop and Android interface shown below.**
+**The latest release includes the unified desktop and Android interface shown below.**
 Download the package for your operating system; no GitHub login is needed.
 
 | Platform | Download |
 | --- | --- |
-| Android 8.0+ | [Android APK v1.1.0](https://github.com/Franek2009/Password-Generator/releases/download/v1.1.0/PasswordGenerator-android.apk) |
-| Linux x86-64 | [Linux v1.1.0](https://github.com/Franek2009/Password-Generator/releases/download/v1.1.0/PasswordGenerator-linux-x86_64.tar.gz) |
-| Windows x86-64 | [Windows v1.1.0](https://github.com/Franek2009/Password-Generator/releases/download/v1.1.0/PasswordGenerator-windows-x86_64.zip) |
+| Android 8.0+ | [Android APK](https://github.com/Franek2009/Password-Generator/releases/latest/download/PasswordGenerator-android.apk) |
+| Linux x86-64 | [Linux archive](https://github.com/Franek2009/Password-Generator/releases/latest/download/PasswordGenerator-linux-x86_64.tar.gz) |
+| Windows x86-64 | [Windows archive](https://github.com/Franek2009/Password-Generator/releases/latest/download/PasswordGenerator-windows-x86_64.zip) |
 
-[Release notes and all files](https://github.com/Franek2009/Password-Generator/releases/tag/v1.1.0). Android reports version **1.1.0**
-(code **1001000**) and installs as an update using the existing signing key.
+[Latest release notes and all files](https://github.com/Franek2009/Password-Generator/releases/latest). Android installs as an
+update using the existing signing key. Compare the version in Android app info
+with the version shown on the release page.
 
-[Third-party dependency sources](https://github.com/Franek2009/Password-Generator/releases/download/v1.1.0/PasswordGenerator-third-party-sources.tar.gz)
+[Third-party dependency sources](https://github.com/Franek2009/Password-Generator/releases/latest/download/PasswordGenerator-third-party-sources.tar.gz)
 are provided for license compliance; they are not required to run the app.
 
 ## Screenshots — current interface

@@ -4,14 +4,15 @@ Natywna wersja aplikacji w Kotlinie i Jetpack Compose. Wymaga Android Studio,
 JDK 17 oraz Android SDK 35. Minimalna obsługiwana wersja systemu to Android 8.0
 (API 26).
 
-## Pobierz v1.1.0 — nowy interfejs
+## Pobierz najnowszą wersję — nowy interfejs
 
-[Pobierz APK v1.1.0](https://github.com/Franek2009/Password-Generator/releases/download/v1.1.0/PasswordGenerator-android.apk)
-bezpośrednio z [publicznego wydania](https://github.com/Franek2009/Password-Generator/releases/tag/v1.1.0). Logowanie do GitHuba
+[Pobierz najnowsze APK](https://github.com/Franek2009/Password-Generator/releases/latest/download/PasswordGenerator-android.apk)
+bezpośrednio z [publicznego wydania](https://github.com/Franek2009/Password-Generator/releases/latest). Logowanie do GitHuba
 nie jest wymagane. Zainstaluj plik APK jako aktualizację aplikacji.
 
-W informacjach o aplikacji powinno być **1.1.0**, kod wersji **1001000**.
-APK korzysta z dotychczasowego klucza podpisywania, więc aktualizuje v1.0.4.
+Wersję sprawdzisz w informacjach o aplikacji; powinna odpowiadać numerowi
+najnowszego wydania na GitHubie. APK korzysta z dotychczasowego klucza
+podpisywania i aktualizuje poprzednie wydania.
 
 ## Zrzuty nowego interfejsu
 
