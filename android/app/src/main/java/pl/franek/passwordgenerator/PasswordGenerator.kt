@@ -15,6 +15,12 @@ data class PasswordConfig(
     val separator: String = "-",
 )
 
+class GenerationException(val code: String, message: String) : IllegalArgumentException(message)
+
+private inline fun validate(condition: Boolean, code: String, message: () -> String) {
+    if (!condition) throw GenerationException(code, message())
+}
+
 class PasswordGenerator(private val random: SecureRandom = SecureRandom()) {
     companion object {
         const val LOWERCASE = "abcdefghijklmnopqrstuvwxyz"
@@ -31,15 +37,15 @@ class PasswordGenerator(private val random: SecureRandom = SecureRandom()) {
         }
 
     fun generateManager(config: PasswordConfig): String {
-        require(config.length >= 1) { "Długość hasła musi wynosić co najmniej 1." }
+        validate(config.length >= 1, "invalid_length") { "Długość hasła musi wynosić co najmniej 1." }
         val sets = buildList {
             if (config.lowercase) add(LOWERCASE)
             if (config.uppercase) add(UPPERCASE)
             if (config.numbers) add(DIGITS)
             if (config.special) add(SPECIAL)
         }
-        require(sets.isNotEmpty()) { "Wybierz co najmniej jeden zestaw znaków." }
-        require(config.length >= sets.size) {
+        validate(sets.isNotEmpty(), "no_sets") { "Wybierz co najmniej jeden zestaw znaków." }
+        validate(config.length >= sets.size, "short_length") {
             "Hasło jest za krótkie dla wybranych zestawów znaków."
         }
 
@@ -53,9 +59,9 @@ class PasswordGenerator(private val random: SecureRandom = SecureRandom()) {
     }
 
     fun generateHuman(config: PasswordConfig, wordList: List<String>): String {
-        require(config.words >= 1) { "Liczba słów musi wynosić co najmniej 1." }
-        require(wordList.isNotEmpty()) { "Lista słów nie może być pusta." }
-        require(config.separator == "Random" || config.separator in SEPARATORS) {
+        validate(config.words >= 1, "invalid_words") { "Liczba słów musi wynosić co najmniej 1." }
+        validate(wordList.isNotEmpty(), "empty_words") { "Lista słów nie może być pusta." }
+        validate(config.separator == "Random" || config.separator in SEPARATORS, "invalid_separator") {
             "Nieobsługiwany separator."
         }
 
@@ -70,7 +76,7 @@ class PasswordGenerator(private val random: SecureRandom = SecureRandom()) {
         if (config.numbers) selected += random.nextInt(100).toString()
         if (config.special) {
             val available = SPECIAL.filterNot { separator.contains(it) }
-            require(available.isNotEmpty()) { "Brak dostępnych znaków specjalnych." }
+            validate(available.isNotEmpty(), "invalid_separator") { "Brak dostępnych znaków specjalnych." }
             selected += available.randomCharacter().toString()
         }
         selected.secureShuffle()

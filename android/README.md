@@ -50,3 +50,20 @@ Pobierz APK z Releases na telefon i zezwól przeglądarce lub menedżerowi plik�
 na instalowanie aplikacji z tego źródła. Wymagany jest Android 8.0 lub nowszy.
 Przejście z wersji debug może wymagać odinstalowania starej aplikacji,
 ponieważ jest podpisana innym kluczem.
+
+## Podgląd nowego interfejsu v1.1.0
+
+Ekran generatora i ustawień używa wspólnych tekstów PL/EN i kolorów z desktopem.
+Preferencje zapisuje SharedPreferences. Bieżące hasło jest wyłącznie w ViewModel,
+więc przetrwa obrót ekranu, ale nie ponowne uruchomienie procesu aplikacji.
+Własny słownik korzysta z trwałego uprawnienia do odczytu wybranego dokumentu.
+
+Testy UI i zrzuty z emulatora:
+
+```bash
+./gradlew connectedDebugAndroidTest
+adb pull /sdcard/Android/data/pl.franek.passwordgenerator/files/ui-preview ../docs/ui-preview
+```
+
+Zrzuty używają publicznych danych przykładowych. Przed publikacją v1.1.0
+należy zaakceptować porównanie obu platform w `docs/ui-preview/`.

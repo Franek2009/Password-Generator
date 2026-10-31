@@ -52,4 +52,14 @@ class PasswordGeneratorTest {
         assertTrue(words.containsAll(listOf("Kot", "Pies")))
         assertTrue(words.all { it in listOf("Kot", "Pies") })
     }
+
+    @Test
+    fun validationUsesStableTranslationIdentifiers() {
+        try {
+            generator.generateManager(PasswordConfig(uppercase = false, lowercase = false, numbers = false, special = false))
+            throw AssertionError("Expected validation failure")
+        } catch (error: GenerationException) {
+            assertEquals("no_sets", error.code)
+        }
+    }
 }

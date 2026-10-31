@@ -2,37 +2,34 @@ from pathlib import Path
 
 from app.resources import resource_path
 
-
 WORDS_FILE = resource_path("data", "words.txt")
 
 
 class WordlistError(Exception):
     """Raised when a word list cannot be loaded or is invalid."""
 
+    def __init__(self, message, code="wordlist_read"):
+        super().__init__(message)
+        self.code = code
+
 
 def _read_words(path: Path) -> list[str]:
     try:
         with path.open("r", encoding="utf-8") as file:
-            words = [
-                line.strip()
-                for line in file
-                if line.strip()
-            ]
+            words = [line.strip() for line in file if line.strip()]
     except FileNotFoundError as error:
         raise WordlistError(
-            f"Word list not found: {path}"
+            f"Word list not found: {path}", "wordlist_missing"
         ) from error
     except OSError as error:
-        raise WordlistError(
-            f"Could not read word list: {path}"
-        ) from error
+        raise WordlistError(f"Could not read word list: {path}") from error
     except UnicodeDecodeError as error:
         raise WordlistError(
-            "Word list must be a UTF-8 text file."
+            "Word list must be a UTF-8 text file.", "wordlist_encoding"
         ) from error
 
     if not words:
-        raise WordlistError("Word list cannot be empty.")
+        raise WordlistError("Word list cannot be empty.", "empty_words")
 
     return words
 

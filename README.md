@@ -9,8 +9,8 @@ environment.
 
 ## Features
 
-* Password Manager mode for highly random passwords
-* Human mode for readable word-based passwords
+* Random password mode for highly random passwords
+* Passphrase mode for readable word-based passwords
 * Cryptographically secure randomness using Python's `secrets` module
 * Configurable length, character sets, word count and separators
 * Built-in Polish word list
@@ -30,7 +30,7 @@ the application. See [`android/README.md`](android/README.md) for requirements.
 
 ## Screenshot
 
-![Password Generator in Human mode](docs/password-generator.png)
+![Password Generator — shared dark theme](docs/ui-preview/desktop-dark-random.png)
 
 ## Download
 
@@ -72,9 +72,9 @@ project's GitHub Releases page before choosing to run it.
 
 ## Using the Application
 
-### Password Manager Mode
+### Random Password Mode
 
-Password Manager mode generates highly random passwords. The following
+Random password mode generates highly random passwords. The following
 character sets can be enabled independently:
 
 * uppercase letters
@@ -89,9 +89,9 @@ When multiple character sets are selected, the generator guarantees that at
 least one character from every selected set is present, provided the requested
 length is sufficient.
 
-### Human Mode
+### Passphrase Mode
 
-Human mode generates more readable passwords from randomly selected words.
+Passphrase mode generates more readable passwords from randomly selected words.
 The user can configure:
 
 * number of words
@@ -118,7 +118,7 @@ The exact output is random and changes with every generation.
 
 ### Custom Word Lists
 
-Human mode accepts custom UTF-8 `.txt` word lists containing one word per
+Passphrase mode accepts custom UTF-8 `.txt` word lists containing one word per
 line:
 
 ```text
@@ -143,7 +143,7 @@ Password generation uses Python's `secrets` module instead of the standard
 `random` module. `secrets` is designed for values that need to be
 unpredictable, including passwords and security tokens.
 
-Password Manager mode also ensures that every enabled character set is
+Random password mode also ensures that every enabled character set is
 represented when the configured length permits it.
 
 Generated passwords are not intentionally persisted by the application.
@@ -227,7 +227,7 @@ python -m pytest
 
 The test suite covers:
 
-* Password Manager and Human modes
+* Password Manager and Passphrase modes
 * configuration and edge-case validation
 * character sets and password lengths
 * secure word selection
@@ -278,8 +278,8 @@ PySide6 GUI
 PasswordConfig and validation
   ↓
 Password generator
-  ├── Password Manager mode → character sets
-  └── Human mode → built-in or custom word list
+  ├── Random password mode → character sets
+  └── Passphrase mode → built-in or custom word list
   ↓
 Generated password
   ↓
@@ -376,3 +376,20 @@ original sources, upload and download-check the combined archive, update the
 release description and only then delete the replaced source attachments.
 Desktop binaries and the release tag are preserved. This requires authenticated
 GitHub CLI access and several GiB of temporary disk space.
+
+## Unified interface preview (v1.1.0)
+
+The redesigned desktop and Android interfaces use **Random password** and
+**Passphrase** tabs, a result field with a copy action and a green Generate
+button. All passphrase controls remain on the main screen.
+
+Settings support system/light/dark appearance, system/Polish/English language
+and optional automatic copying (off by default). Preferences and each mode's
+configuration survive application restarts. Generated passwords do not.
+Android retains the current result when the device rotates. There is no history.
+
+Custom word lists remain selectable as UTF-8 text files. If a saved list becomes
+unavailable, the app reports it and returns to the built-in Polish list.
+Android's clipboard marks copied passwords as sensitive on Android 13+.
+
+See [review screenshots and validation notes](docs/ui-preview/README.md).
