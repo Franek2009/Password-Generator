@@ -6,6 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.selection.toggleable
@@ -63,11 +65,21 @@ fun PasswordGeneratorApp(model: GeneratorViewModel = viewModel()) {
     val colors = if (dark) darkColorScheme(
         primary = color("accent"), onPrimary = color("background"), background = color("background"),
         surface = color("surface"), onSurface = color("text"), onBackground = color("text"),
-        onSurfaceVariant = color("muted"), outline = color("border"), surfaceVariant = color("surface"),
+        onSurfaceVariant = color("muted"), outline = color("border"), outlineVariant = color("border"), surfaceVariant = color("surface"),
+        secondary = color("accent"), secondaryContainer = color("surface"), onSecondaryContainer = color("text"), surfaceTint = Color.Transparent,
+        primaryContainer = color("surface"), onPrimaryContainer = color("text"),
+        tertiary = color("accent"), tertiaryContainer = color("surface"), onTertiaryContainer = color("text"),
+        surfaceContainerHighest = color("surface"), surfaceContainerHigh = color("surface"),
+        surfaceContainer = color("surface"), surfaceContainerLow = color("surface"), surfaceContainerLowest = color("background"),
     ) else lightColorScheme(
         primary = color("accent"), onPrimary = color("background"), background = color("background"),
         surface = color("surface"), onSurface = color("text"), onBackground = color("text"),
-        onSurfaceVariant = color("muted"), outline = color("border"), surfaceVariant = color("surface"),
+        onSurfaceVariant = color("muted"), outline = color("border"), outlineVariant = color("border"), surfaceVariant = color("surface"),
+        secondary = color("accent"), secondaryContainer = color("surface"), onSecondaryContainer = color("text"), surfaceTint = Color.Transparent,
+        primaryContainer = color("surface"), onPrimaryContainer = color("text"),
+        tertiary = color("accent"), tertiaryContainer = color("surface"), onTertiaryContainer = color("text"),
+        surfaceContainerHighest = color("surface"), surfaceContainerHigh = color("surface"),
+        surfaceContainer = color("surface"), surfaceContainerLow = color("surface"), surfaceContainerLowest = color("background"),
     )
     SideEffect {
         val window = (context as? ComponentActivity)?.window
@@ -142,12 +154,13 @@ private fun SharedIcon(ui: SharedUi, name: String, description: String) {
 @Composable
 private fun GeneratorScreen(ui: SharedUi, state: UiState, model: GeneratorViewModel, t: (String) -> String, button: Color, buttonText: Color) {
     val human = state.mode == PasswordMode.HUMAN
+    val focus = LocalFocusManager.current
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { model.chooseWordlist(it) }
     }
     TabRow(selectedTabIndex = if (human) 1 else 0, containerColor = MaterialTheme.colorScheme.background) {
         listOf("random", "phrase").forEachIndexed { index, key ->
-            Tab(selected = human == (index == 1), onClick = { model.update { it.copy(mode = if (index == 0) PasswordMode.MANAGER else PasswordMode.HUMAN) } },
+            Tab(selectedContentColor = MaterialTheme.colorScheme.onSurface, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant, selected = human == (index == 1), onClick = { model.update { it.copy(mode = if (index == 0) PasswordMode.MANAGER else PasswordMode.HUMAN) } },
                 text = { Text(t(key), maxLines = 2) })
         }
     }
@@ -182,12 +195,13 @@ private fun GeneratorScreen(ui: SharedUi, state: UiState, model: GeneratorViewMo
         model.update { if (human) it.copy(humanSpecial = value) else it.copy(managerSpecial = value) }
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-    Button(onClick = model::generate, enabled = !model.working, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+    Button(onClick = { focus.clearFocus(); model.generate() }, enabled = !model.working, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
         shape = RoundedCornerShape(7.dp), colors = ButtonDefaults.buttonColors(containerColor = button, contentColor = buttonText)) {
         Text(t("generate"), fontSize = 17.sp, modifier = Modifier.padding(vertical = 4.dp))
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NumberSetting(label: String, value: Int, range: IntRange, onChange: (Int) -> Unit) {
     val focus = LocalFocusManager.current
@@ -195,8 +209,19 @@ private fun NumberSetting(label: String, value: Int, range: IntRange, onChange: 
     Column {
         Text("$label: $value", style = MaterialTheme.typography.bodyMedium)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            val sliderColors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.onSurface,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = MaterialTheme.colorScheme.outline,
+                activeTickColor = Color.Transparent, inactiveTickColor = Color.Transparent,
+            )
             Slider(value.toFloat(), { onChange(it.toInt()) }, modifier = Modifier.weight(1f).semantics { contentDescription = label },
-                valueRange = range.first.toFloat()..range.last.toFloat(), steps = range.last - range.first - 1)
+                valueRange = range.first.toFloat()..range.last.toFloat(), steps = range.last - range.first - 1,
+                colors = sliderColors,
+                thumb = { Box(Modifier.size(20.dp).background(MaterialTheme.colorScheme.onSurface, CircleShape)
+                    .border(2.dp, MaterialTheme.colorScheme.background, CircleShape)) },
+                track = { slider -> SliderDefaults.Track(sliderState = slider, colors = sliderColors,
+                    modifier = Modifier.height(6.dp), thumbTrackGapSize = 0.dp, drawStopIndicator = null) })
             OutlinedTextField(input, { raw ->
                 if (raw.length <= 2 && raw.all(Char::isDigit)) {
                     input = raw
@@ -205,7 +230,8 @@ private fun NumberSetting(label: String, value: Int, range: IntRange, onChange: 
             }, singleLine = true, modifier = Modifier.width(72.dp).onFocusChanged { if (!it.isFocused) input = value.toString() }.semantics { contentDescription = label },
                 isError = input.toIntOrNull()?.let { it !in range } ?: true,
                 keyboardActions = KeyboardActions(onDone = { focus.clearFocus() }),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = MaterialTheme.colorScheme.surface, unfocusedContainerColor = MaterialTheme.colorScheme.surface))
         }
     }
 }
@@ -228,7 +254,8 @@ private fun Choice(label: String, value: String, choices: List<String>, display:
         Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
         Box {
             OutlinedButton(onClick = { expanded = true }, enabled = enabled, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                shape = RoundedCornerShape(6.dp)) { Text(display(value), Modifier.weight(1f)); Text("⌄") }
+                shape = RoundedCornerShape(6.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface, containerColor = MaterialTheme.colorScheme.surface)) { Text(display(value), Modifier.weight(1f)); Text("⌄") }
             DropdownMenu(expanded, { expanded = false }) {
                 choices.forEach { choice -> DropdownMenuItem(text = { Text(display(choice)) },
                     onClick = { onSelected(choice); expanded = false }) }
@@ -243,7 +270,10 @@ private fun SettingsScreen(state: UiState, model: GeneratorViewModel, t: (String
     Surface(shape = RoundedCornerShape(8.dp)) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(t("auto_copy"), Modifier.weight(1f))
-            Switch(state.autoCopy, { value -> model.update { it.copy(autoCopy = value) } }, Modifier.semantics { contentDescription = t("auto_copy") })
+            Switch(state.autoCopy, { value -> model.update { it.copy(autoCopy = value) } }, Modifier.semantics { contentDescription = t("auto_copy") },
+                colors = SwitchDefaults.colors(uncheckedTrackColor = MaterialTheme.colorScheme.outline,
+                    uncheckedBorderColor = MaterialTheme.colorScheme.outline, uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    checkedTrackColor = MaterialTheme.colorScheme.primary, checkedThumbColor = MaterialTheme.colorScheme.background))
         }
     }
     Text(t("appearance"), style = MaterialTheme.typography.titleMedium)

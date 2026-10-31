@@ -67,3 +67,8 @@ adb pull /sdcard/Android/data/pl.franek.passwordgenerator/files/ui-preview ../do
 
 Zrzuty używają publicznych danych przykładowych. Przed publikacją v1.1.0
 należy zaakceptować porównanie obu platform w `docs/ui-preview/`.
+
+Podpisany podgląd bez publikowania wydania można zbudować ręcznie w workflow
+**Android APK**, wskazując gałąź i pole `release_tag`, np. `v1.1.0`. APK używa
+tego samego identyfikatora i klucza co wydania, więc aktualizuje aplikację.
+Nie tworzy tagu Git ani wpisu w Releases.

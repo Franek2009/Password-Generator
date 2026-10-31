@@ -64,7 +64,7 @@ class UnifiedUiTest {
         fun screenshot(name: String) {
             rule.waitForIdle()
             instrumentation.waitForIdleSync()
-            Thread.sleep(250)
+            instrumentation.uiAutomation.waitForIdle(1000, 5000)
             instrumentation.uiAutomation.takeScreenshot().also { bitmap ->
                 File(output, name).outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
                 bitmap.recycle()

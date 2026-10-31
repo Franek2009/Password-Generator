@@ -13,6 +13,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: android-ui-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ui:
     name: UI on Android API ${{ matrix.api }}

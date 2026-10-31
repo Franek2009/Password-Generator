@@ -12,6 +12,12 @@ on:
       - "android/**"
       - ".github/workflows/android.yml"
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Optional version tag for a signed preview (e.g. v1.1.0); leave empty for debug'
+        type: string
+        required: false
+        default: ''
   push:
     branches:
       - master
