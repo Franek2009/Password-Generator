@@ -4,7 +4,8 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-val releaseTag = providers.environmentVariable("PASSWORD_GENERATOR_RELEASE_TAG").orNull
+val releaseTag = providers.environmentVariable("PASSWORD_GENERATOR_RELEASE_TAG")
+    .orNull?.takeIf { it.isNotBlank() }
 val releaseParts = releaseTag?.let {
     val match = Regex("""v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)""").matchEntire(it)
         ?: error("Release tag must be vMAJOR.MINOR.PATCH")
