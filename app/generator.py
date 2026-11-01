@@ -5,6 +5,8 @@ from app.config import PasswordConfig, PasswordMode
 from app.errors import GenerationError
 from app.wordlist import load_wordlist, load_words
 
+SIMILAR_CHARACTERS = "0Oo1Il"
+
 RANDOM_SEPARATORS = ["-", "_", ".", " ", "/", "|"]
 
 
@@ -80,6 +82,16 @@ def _generate_manager_password(config: PasswordConfig) -> str:
 
     if config.special:
         character_sets.append(string.punctuation)
+
+    if config.exclude_similar:
+        character_sets = [
+            "".join(c for c in pool if c not in SIMILAR_CHARACTERS)
+            for pool in character_sets
+        ]
+    if any(not pool for pool in character_sets) or not character_sets:
+        raise GenerationError(
+            "empty_characters", "No characters available in a selected set."
+        )
 
     password = [secrets.choice(character_set) for character_set in character_sets]
 

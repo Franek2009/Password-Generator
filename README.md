@@ -22,6 +22,37 @@ environment.
 * Standalone Linux and Windows builds
 * Native Android application in Kotlin and Jetpack Compose
 
+## In development — planned v1.2.0
+
+These features are available in source and are not yet included in the published
+v1.1.0 packages linked below:
+
+* **Presets:** Standard (16 characters), Strong (24 characters), and Phrase
+  (5 words, `-`, built-in Polish list, no added numbers or symbols). Select a
+  preset below the result. Save or delete named custom presets through the
+  desktop overflow menu or Android preset menu. Built-ins cannot be deleted.
+* Presets restore only the active mode's generator parameters. Names must be
+  unique (including built-in names), with 1–64 characters. Theme, language,
+  automatic copying and transcription view remain independent preferences.
+* **Exclude similar characters:** optionally removes `0 O o 1 I l` in random
+  mode while preserving every selected character set. Off by default; saved
+  with preferences and random-mode presets. Passphrases are unaffected.
+* **Transcription view:** larger monospace text with visual groups of four in
+  random mode. Passphrases retain their words and separators. Copying retains
+  the entire original result, without visual spacing. Switching this view
+  does not generate or copy a new password.
+* Long results wrap and scroll. Switching generator modes or applying a preset
+  clears the result without generating another password.
+
+Presets contain configuration only. Results are never saved in settings or
+presets. Invalid preset records are ignored with a warning. An unavailable
+custom word list, including a lost Android document permission, causes an
+error; generation and preset application do not silently substitute a dictionary.
+Choose the built-in list or select the custom file again to recover.
+
+[Development screenshots and validation](docs/v1.2.0-preview/README.md)
+are separate from the current release gallery.
+
 ## Android
 
 The native Android project is located in [`android/`](android/). It supports
@@ -315,6 +346,8 @@ Password-Generator/
 │   └── tests.yml
 ├── app/
 │   ├── errors.py
+│   ├── presets.py
+│   ├── result_view.py
 │   ├── presentation.py
 │   ├── application.py
 │   ├── config.py
@@ -410,8 +443,9 @@ and optional automatic copying (off by default). Preferences and each mode's
 configuration survive application restarts. Generated passwords do not.
 Android retains the current result when the device rotates. There is no history.
 
-Custom word lists remain selectable as UTF-8 text files. If a saved list becomes
-unavailable, the app reports it and returns to the built-in Polish list.
+Custom word lists remain selectable as UTF-8 text files. In v1.1.0, a saved list that becomes
+unavailable is replaced with the built-in Polish list after a warning. The
+development version reports an error and requires an explicit list selection.
 Android's clipboard marks copied passwords as sensitive on Android 13+.
 
 See the [review gallery and validation notes](https://github.com/Franek2009/Password-Generator/blob/master/docs/ui-preview/README.md).

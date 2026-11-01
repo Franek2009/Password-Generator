@@ -96,3 +96,32 @@ zbudować ręcznie w workflow
 w polu `release_tag`. APK używa
 tego samego identyfikatora i klucza co wydania, więc aktualizuje aplikację.
 Nie tworzy tagu Git ani wpisu w Releases.
+
+## Funkcje przygotowywane do v1.2.0
+
+Kod źródłowy zawiera presety Standard, Mocne i Fraza oraz zapis/usuwanie
+własnych konfiguracji. Presety są dostępne pod wynikiem; menu tego wyboru
+zawiera zapis i usuwanie. Przywracają parametry wybranego trybu bez zmieniania
+ustawień drugiego trybu, motywu, języka ani automatycznego kopiowania.
+
+Opcja „Wyklucz podobne znaki” usuwa `0 O o 1 I l` wyłącznie z losowych haseł.
+Widok do przepisywania powiększa tekst i wizualnie grupuje losowe hasła po cztery
+znaki. Kopiowanie zachowuje oryginał. Długie wyniki są zawijane i przewijane.
+Zmiana trybu czyści wynik, ale nie generuje nowego.
+
+Presety nie zawierają haseł. Nieprawidłowe zapisane rekordy są odrzucane
+z komunikatem. Brak słownika lub utrata dostępu do URI blokuje generowanie
+albo zastosowanie presetu; należy ponownie wybrać plik lub wbudowaną listę.
+Wynik poprzedniej operacji nie zostanie przywrócony po zmianie trybu.
+
+Walidacja bez podpisywania APK:
+
+```bash
+./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
+./gradlew connectedDebugAndroidTest
+```
+
+Drugie polecenie wymaga emulatora. Nowe zrzuty są eksportowane przez
+`scripts/android_ui_checks.sh` do `build/android-ui-preview/v120-preview/`.
+Galeria robocza: [`docs/v1.2.0-preview/`](../docs/v1.2.0-preview/README.md).
+Nie zastępuje ona referencji v1.1.0 ani publicznego APK.

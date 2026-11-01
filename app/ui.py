@@ -12,8 +12,8 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
-    QLineEdit,
     QListWidget,
     QMainWindow,
     QMenu,
@@ -33,6 +33,8 @@ from app.application import APP_NAME, configure_application
 from app.config import PasswordConfig, PasswordMode
 from app.generator import generate_password as generate_password_from_config
 from app.presentation import UI, Preferences
+from app.presets import PresetStore, validate_parameters
+from app.result_view import ResultView
 from app.versioning import get_application_version
 from app.wordlist import WordlistError, load_wordlist
 
@@ -136,11 +138,14 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.preferences = preferences if preferences is not None else Preferences()
         self.t = self.preferences.text
+        self.presets = PresetStore(self.preferences.store)
+        self._applying_preset = False
+        self._selected_preset = ""
         self._settings_dialog = None
         self._icon_directory = QTemporaryDir()
         self.custom_wordlist_path = self.preferences.values["wordlist"] or None
         self.setWindowTitle(APP_NAME)
-        self.resize(760, 390)
+        self.resize(760, 560)
         self.setMinimumWidth(560)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -178,10 +183,10 @@ class MainWindow(QMainWindow):
         layout.addLayout(header)
         result = QFrame()
         result.setObjectName("result")
-        result.setFixedHeight(76)
+        result.setMinimumHeight(110)
         result_layout = QHBoxLayout(result)
         result_layout.setContentsMargins(16, 10, 12, 10)
-        self.password_field = QLineEdit()
+        self.password_field = ResultView()
         self.password_field.setObjectName("password")
         self.password_field.setReadOnly(True)
         font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
@@ -191,11 +196,24 @@ class MainWindow(QMainWindow):
         self.copy_button.setEnabled(False)
         self.copy_button.clicked.connect(self.copy_password)
         self.password_field.textChanged.connect(
-            lambda text: self.copy_button.setEnabled(bool(text))
+            lambda: self.copy_button.setEnabled(bool(self.password_field.text()))
         )
         result_layout.addWidget(self.password_field, 1)
         result_layout.addWidget(self.copy_button)
         layout.addWidget(result)
+        preset_row = QHBoxLayout()
+        self.preset_combo = QComboBox()
+        self.preset_combo.activated.connect(self.select_preset)
+        preset_row.addWidget(self.preset_combo, 1)
+        self.transcription_checkbox = self.option(preset_row, "transcription")
+        self.transcription_checkbox.toggled.connect(self.update_result_view)
+        layout.addLayout(preset_row)
+        self.save_preset_action = QAction(self)
+        self.menu.insertAction(self.about_action, self.save_preset_action)
+        self.save_preset_action.triggered.connect(self.prompt_save_preset)
+        self.delete_preset_action = QAction(self)
+        self.menu.insertAction(self.about_action, self.delete_preset_action)
+        self.delete_preset_action.triggered.connect(self.prompt_delete_preset)
         self.manager_settings = QWidget()
         manager = QVBoxLayout(self.manager_settings)
         manager.setContentsMargins(0, 0, 0, 0)
@@ -210,6 +228,7 @@ class MainWindow(QMainWindow):
         self.manager_numbers_checkbox = self.option(options, "manager_numbers")
         self.manager_special_checkbox = self.option(options, "manager_special")
         manager.addLayout(options)
+        self.exclude_similar_checkbox = self.option(manager, "exclude_similar")
         layout.addWidget(self.manager_settings)
         self.human_settings = QWidget()
         human = QVBoxLayout(self.human_settings)
@@ -281,8 +300,161 @@ class MainWindow(QMainWindow):
             try:
                 load_wordlist(self.custom_wordlist_path)
             except WordlistError:
+                QTimer.singleShot(0, lambda: self.notify(self.t("wordlist_missing")))
+
+        self.update_result_view()
+        if self.presets.invalid:
+            QTimer.singleShot(0, lambda: self.notify(self.t("preset_invalid")))
+        # Any manual generator edit resets the selection; saving remains explicit.
+        for control in [self.length_spin, self.words_spin]:
+            control.valueChanged.connect(self.mark_custom)
+        for control in [
+            self.uppercase_checkbox,
+            self.lowercase_checkbox,
+            self.manager_numbers_checkbox,
+            self.manager_special_checkbox,
+            self.human_numbers_checkbox,
+            self.human_special_checkbox,
+            self.exclude_similar_checkbox,
+        ]:
+            control.toggled.connect(self.mark_custom)
+        self.separator_combo.currentIndexChanged.connect(self.mark_custom)
+
+    def mark_custom(self, *_):
+        if not self._applying_preset:
+            self._selected_preset = ""
+            self.preset_combo.setCurrentIndex(0)
+            self.delete_preset_action.setEnabled(False)
+
+    def refresh_presets(self, identity=None):
+        identity = self._selected_preset if identity is None else identity
+        self.preset_combo.clear()
+        self.preset_combo.addItem(self.t("preset_custom"), "")
+        for p in self.presets.all:
+            self.preset_combo.addItem(self.t(p.name) if p.builtin else p.name, p.id)
+        self.preset_combo.setCurrentIndex(max(0, self.preset_combo.findData(identity)))
+        self._selected_preset = self.preset_combo.currentData()
+        self.delete_preset_action.setEnabled(
+            identity in {p.id for p in self.presets.custom}
+        )
+
+    def current_config(self):
+        human = self.tabs.currentIndex() == 1
+        return PasswordConfig(
+            mode=self.tabs.currentData(),
+            length=self.length_spin.value(),
+            uppercase=self.uppercase_checkbox.isChecked(),
+            lowercase=self.lowercase_checkbox.isChecked(),
+            numbers=(
+                self.human_numbers_checkbox if human else self.manager_numbers_checkbox
+            ).isChecked(),
+            special=(
+                self.human_special_checkbox if human else self.manager_special_checkbox
+            ).isChecked(),
+            words=self.words_spin.value(),
+            separator=self.separator_combo.currentData(),
+            wordlist_path=self.custom_wordlist_path if human else None,
+            exclude_similar=self.exclude_similar_checkbox.isChecked(),
+        )
+
+    def select_preset(self, index):
+        identity = self.preset_combo.itemData(index)
+        preset = next((p for p in self.presets.all if p.id == identity), None)
+        if preset:
+            self.apply_preset(preset)
+
+    def apply_preset(self, preset):
+        try:
+            data = validate_parameters(preset.config)
+        except ValueError:
+            self.notify(self.t("preset_invalid"))
+            self.refresh_presets()
+            return False
+        if data["mode"] == "human" and data["wordlist"]:
+            try:
+                load_wordlist(data["wordlist"])
+            except WordlistError as error:
+                self.notify(self.t(error.code))
+                self.refresh_presets()
+                return False
+        self._applying_preset = True
+        try:
+            if data["mode"] == "manager":
+                self.tabs.setCurrentIndex(0)
+                self.length_spin.setValue(data["length"])
+                for key, widget in [
+                    ("uppercase", self.uppercase_checkbox),
+                    ("lowercase", self.lowercase_checkbox),
+                    ("numbers", self.manager_numbers_checkbox),
+                    ("special", self.manager_special_checkbox),
+                    ("exclude_similar", self.exclude_similar_checkbox),
+                ]:
+                    widget.setChecked(data[key])
+            else:
+                self.tabs.setCurrentIndex(1)
+                self.words_spin.setValue(data["words"])
+                self.separator_combo.setCurrentIndex(
+                    self.separator_combo.findData(data["separator"])
+                )
+                self.human_numbers_checkbox.setChecked(data["numbers"])
+                self.human_special_checkbox.setChecked(data["special"])
                 self.reset_wordlist()
-                QTimer.singleShot(0, lambda: self.notify(self.t("wordlist_restored")))
+                if data["wordlist"]:
+                    self.custom_wordlist_path = data["wordlist"]
+                    self.preferences.set("wordlist", self.custom_wordlist_path)
+                    self.wordlist_combo.blockSignals(True)
+                    self.wordlist_combo.insertItem(
+                        1, Path(self.custom_wordlist_path).name, "selected"
+                    )
+                    self.wordlist_combo.setCurrentIndex(1)
+                    self.wordlist_combo.blockSignals(False)
+            self.password_field.clear()
+            self.refresh_presets(preset.id)
+            self.update_result_view()
+        finally:
+            self._applying_preset = False
+        return True
+
+    def save_preset(self, name):
+        preset = self.presets.save(name, self.current_config())
+        self.refresh_presets(preset.id)
+        return preset
+
+    def prompt_save_preset(self):
+        name, ok = QInputDialog.getText(
+            self, self.t("preset_save"), self.t("preset_name")
+        )
+        if ok:
+            try:
+                self.save_preset(name)
+            except ValueError as error:
+                self.notify(self.t(str(error)))
+
+    def prompt_delete_preset(self):
+        identity = self.preset_combo.currentData()
+        if identity not in {p.id for p in self.presets.custom}:
+            return
+        if (
+            QMessageBox.question(
+                self, self.t("preset_delete"), self.t("preset_confirm_delete")
+            )
+            == QMessageBox.Yes
+        ):
+            self.presets.delete(identity)
+            self.refresh_presets()
+
+    def update_result_view(self, *_):
+        self.password_field.transcription = self.transcription_checkbox.isChecked()
+        self.password_field.human = self.tabs.currentIndex() == 1
+        self.password_field.format_result()
+        self.password_field.setAccessibleName(
+            self.t("placeholder")
+            + (
+                " — " + self.t("transcription")
+                if self.password_field.transcription
+                else ""
+            )
+        )
 
     def option(self, layout, key):
         box = QCheckBox()
@@ -314,6 +486,9 @@ class MainWindow(QMainWindow):
         return label, slider, spin
 
     def update_mode(self, *_):
+        self.password_field.clear()
+        self.mark_custom()
+        self.update_result_view()
         manager = self.tabs.currentIndex() == 0
         self.manager_settings.setVisible(manager)
         self.human_settings.setVisible(not manager)
@@ -333,6 +508,13 @@ class MainWindow(QMainWindow):
         self.tabs.setTabText(1, t("phrase"))
         self.password_field.setPlaceholderText(t("placeholder"))
         self.password_field.setAccessibleName(t("placeholder"))
+        self.password_field.setAccessibleDescription(t("copy"))
+        self.preset_combo.setAccessibleName(t("presets"))
+        self.transcription_checkbox.setText(t("transcription"))
+        self.exclude_similar_checkbox.setText(t("exclude_similar"))
+        self.save_preset_action.setText(t("preset_save"))
+        self.delete_preset_action.setText(t("preset_delete"))
+        self.refresh_presets()
         self.generate_button.setText(t("generate"))
         for button, key in [
             (self.copy_button, "copy"),
@@ -405,7 +587,7 @@ class MainWindow(QMainWindow):
         for name, path, stroke in [
             ("check", "M5 12 L10 17 L20 7", "#101819"),
             ("up", "M6 15 L12 9 L18 15", c["text"]),
-            ("down", "M6 9 L12 15 L18 9", c["text"]),
+            ("down", UI["icons"]["chevron"], c["text"]),
         ]:
             target = Path(self._icon_directory.path()) / f"{name}.svg"
             target.write_text(
@@ -416,10 +598,14 @@ class MainWindow(QMainWindow):
             QWidget {{ color: {c["text"]}; font-size: 14px; }}
             QMainWindow, QDialog, QScrollArea, QScrollArea > QWidget > QWidget {{ background: {c["background"]}; }}
             QToolButton, QComboBox, QSpinBox {{ background: {c["surface"]}; border: 1px solid {c["border"]}; border-radius: 6px; padding: 8px; }}
+            QComboBox {{ padding-right: 36px; }}
+            QComboBox::drop-down {{ subcontrol-origin: border; subcontrol-position: top right; width: 30px; border: none; background: transparent; }}
+            QComboBox::down-arrow {{ image: url({icon_paths["down"]}); width: 16px; height: 16px; }}
+            QComboBox:hover {{ border-color: {c["accent"]}; }}
             QToolButton {{ min-width: 24px; min-height: 24px; }}
             QToolButton:disabled {{ color: {c["muted"]}; }}
             QFrame#result {{ background: {c["surface"]}; border: 1px solid {c["border"]}; border-radius: 8px; }}
-            QLineEdit#password {{ background: transparent; border: none; font-size: 24px; padding: 6px 0; }}
+            QTextEdit#password {{ background: transparent; border: none; padding: 6px 0; }}
             QTabBar::tab {{ padding: 12px 22px; border-bottom: 1px solid {c["border"]}; }}
             QTabBar::tab:selected {{ border-bottom: 3px solid {c["accent"]}; font-weight: 600; }}
             QSlider::groove:horizontal {{ height: 6px; background: {c["border"]}; border-radius: 3px; }}
@@ -470,6 +656,7 @@ class MainWindow(QMainWindow):
         )
 
     def reset_wordlist(self):
+        self.mark_custom()
         self.custom_wordlist_path = None
         self.preferences.set("wordlist", "")
         self.wordlist_combo.blockSignals(True)
@@ -479,6 +666,7 @@ class MainWindow(QMainWindow):
         self.wordlist_combo.blockSignals(False)
 
     def select_wordlist(self, index):
+        self.mark_custom()
         choice = self.wordlist_combo.itemData(index)
         if choice == "builtin":
             self.reset_wordlist()
@@ -510,22 +698,7 @@ class MainWindow(QMainWindow):
             self.notify(self.t("copied"))
 
     def generate_password(self):
-        human = self.tabs.currentIndex() == 1
-        config = PasswordConfig(
-            mode=self.tabs.currentData(),
-            length=self.length_slider.value(),
-            uppercase=self.uppercase_checkbox.isChecked(),
-            lowercase=self.lowercase_checkbox.isChecked(),
-            numbers=(
-                self.human_numbers_checkbox if human else self.manager_numbers_checkbox
-            ).isChecked(),
-            special=(
-                self.human_special_checkbox if human else self.manager_special_checkbox
-            ).isChecked(),
-            words=self.words_slider.value(),
-            separator=self.separator_combo.currentData(),
-            wordlist_path=self.custom_wordlist_path if human else None,
-        )
+        config = self.current_config()
         try:
             password = generate_password_from_config(config)
         except (WordlistError, ValueError) as error:

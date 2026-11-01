@@ -26,6 +26,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -34,10 +35,18 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.*
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -141,7 +150,7 @@ fun PasswordGeneratorApp(model: GeneratorViewModel = viewModel()) {
 }
 
 @Composable
-private fun SharedIcon(ui: SharedUi, name: String, description: String) {
+private fun SharedIcon(ui: SharedUi, name: String, description: String?) {
     val vector = remember(name) {
         ImageVector.Builder(name, 24.dp, 24.dp, 24f, 24f).apply {
             addPath(PathParser().parsePathString(ui.path(name)).toNodes(),
@@ -149,6 +158,15 @@ private fun SharedIcon(ui: SharedUi, name: String, description: String) {
         }.build()
     }
     Icon(rememberVectorPainter(vector), description, Modifier.size(24.dp))
+}
+
+@Composable
+private fun DropdownArrow(expanded: Boolean) {
+    val context = LocalContext.current
+    val ui = remember(context) { SharedUi(context) }
+    Box(Modifier.size(24.dp).rotate(if (expanded) 180f else 0f)) {
+        SharedIcon(ui, "chevron", null)
+    }
 }
 
 @Composable
@@ -166,14 +184,35 @@ private fun GeneratorScreen(ui: SharedUi, state: UiState, model: GeneratorViewMo
     }
     OutlinedCard(shape = RoundedCornerShape(8.dp), colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(value = state.password, onValueChange = {}, readOnly = true, singleLine = true,
-                placeholder = { Text(t("placeholder"), fontSize = 14.sp) },
-                textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace, fontSize = 20.sp),
-                modifier = Modifier.weight(1f).semantics { contentDescription = t("placeholder") },
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color.Transparent, unfocusedBorderColor = Color.Transparent))
+            val systemClipboard = LocalClipboardManager.current
+            val resultClipboard = remember(model, systemClipboard) {
+                object : ClipboardManager {
+                    override fun getText(): AnnotatedString? = systemClipboard.getText()
+                    override fun setText(annotatedString: AnnotatedString) { model.copy() }
+                }
+            }
+            CompositionLocalProvider(LocalClipboardManager provides resultClipboard) {
+                OutlinedTextField(value = state.password, onValueChange = {}, readOnly = true, singleLine = false, maxLines = 6,
+                    visualTransformation = when {
+                        human -> PhraseTransformation
+                        state.transcription -> TranscriptionTransformation
+                        else -> VisualTransformation.None
+                    },
+                    placeholder = { Text(t("placeholder"), fontSize = 14.sp) },
+                    textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace, fontSize = if (state.transcription) 26.sp else 20.sp,
+                        lineHeight = if (state.transcription) 34.sp else 28.sp, lineBreak = LineBreak.Paragraph),
+                    modifier = Modifier.weight(1f).clearAndSetSemantics {
+                        contentDescription = t("placeholder")
+                        text = AnnotatedString(state.password)
+                        stateDescription = if (state.transcription) t("transcription") else ""
+                        customActions = if (state.password.isEmpty()) emptyList() else listOf(CustomAccessibilityAction(t("copy")) { model.copy(); true })
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color.Transparent, unfocusedBorderColor = Color.Transparent))
+            }
             IconButton(enabled = state.password.isNotEmpty(), onClick = model::copy) { SharedIcon(ui, "copy", t("copy")) }
         }
     }
+    PresetControls(state, model, t)
     NumberSetting(if (human) t("words") else t("length"), if (human) state.words else state.length,
         if (human) 2..8 else 8..64) { number -> model.update { if (human) it.copy(words = number) else it.copy(length = number) } }
     if (human) {
@@ -194,11 +233,91 @@ private fun GeneratorScreen(ui: SharedUi, state: UiState, model: GeneratorViewMo
     CheckOption(t("symbols"), if (human) state.humanSpecial else state.managerSpecial) { value ->
         model.update { if (human) it.copy(humanSpecial = value) else it.copy(managerSpecial = value) }
     }
+    if (!human) CheckOption(t("exclude_similar"), state.excludeSimilar) { value -> model.update { it.copy(excludeSimilar = value) } }
     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
     Button(onClick = { focus.clearFocus(); model.generate() }, enabled = !model.working, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
         shape = RoundedCornerShape(7.dp), colors = ButtonDefaults.buttonColors(containerColor = button, contentColor = buttonText)) {
         Text(t("generate"), fontSize = 17.sp, modifier = Modifier.padding(vertical = 4.dp))
     }
+}
+
+/** Only display changes: TextField and clipboard retain the original value. */
+object TranscriptionTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val size = text.length
+        val grouped = text.text.chunked(4).joinToString("  ")
+        val mapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int =
+                offset + (if (size == 0) 0 else minOf(offset / 4, (size - 1) / 4)) * 2
+            override fun transformedToOriginal(offset: Int): Int =
+                minOf(size, (offset / 6) * 4 + minOf(offset % 6, 4))
+        }
+        return TransformedText(AnnotatedString(grouped), mapping)
+    }
+}
+
+/** Add invisible line-break opportunities after separators, never to the raw value. */
+object PhraseTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val offsets = IntArray(text.length + 1)
+        val separators = PasswordGenerator.SEPARATORS.filter { it != " " }.map { it.single() }
+        val display = buildString {
+            text.text.forEachIndexed { index, char ->
+                append(char)
+                if (char in separators && index < text.length - 1) append('\u200B')
+                offsets[index + 1] = length
+            }
+        }
+        val mapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int = offsets[offset]
+            override fun transformedToOriginal(offset: Int): Int = offsets.binarySearch(offset).let {
+                if (it >= 0) it else -it - 2
+            }
+        }
+        return TransformedText(AnnotatedString(display), mapping)
+    }
+}
+
+@Composable
+private fun PresetControls(state: UiState, model: GeneratorViewModel, t: (String) -> String) {
+    var expanded by remember { mutableStateOf(false) }
+    var saving by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf(false) }
+    // Deliberately not saveable: a partially entered name need not survive process death.
+    var name by remember { mutableStateOf("") }
+    val selected = model.presets.find { it.id == model.selectedPreset }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.weight(1f)) {
+            TextButton(onClick = { expanded = true }, enabled = !model.working) {
+                Text(selected?.let { if (it.builtin) t(it.name) else it.name } ?: t("preset_custom"), Modifier.weight(1f), maxLines = 2)
+                Spacer(Modifier.width(8.dp))
+                DropdownArrow(expanded)
+            }
+            DropdownMenu(expanded, { expanded = false }) {
+                model.presets.forEach { preset ->
+                    DropdownMenuItem(text = { Text(if (preset.builtin) t(preset.name) else preset.name) }, onClick = {
+                        expanded = false; model.applyPreset(preset.id)
+                    })
+                }
+                HorizontalDivider()
+                DropdownMenuItem(text = { Text(t("preset_save")) }, onClick = { expanded = false; name = ""; saving = true })
+                if (selected != null && !selected.builtin) DropdownMenuItem(text = { Text(t("preset_delete")) }, onClick = { expanded = false; deleting = true })
+            }
+        }
+        Row(Modifier.weight(1f).heightIn(min = 48.dp).toggleable(value = state.transcription, role = Role.Checkbox,
+            onValueChange = { value -> model.update { it.copy(transcription = value) } }), verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(state.transcription, null)
+            Text(t("transcription"), style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+    if (saving) AlertDialog(onDismissRequest = { saving = false }, title = { Text(t("preset_save")) },
+        text = { OutlinedTextField(name, { name = it }, label = { Text(t("preset_name")) }, singleLine = true) },
+        confirmButton = { TextButton(onClick = { model.savePreset(name); saving = false }) { Text(t("preset_save")) } },
+        dismissButton = { TextButton(onClick = { saving = false }) { Text(t("close")) } })
+    if (deleting) AlertDialog(onDismissRequest = { deleting = false }, title = { Text(t("preset_delete")) },
+        text = { Text(t("preset_confirm_delete")) },
+        confirmButton = { TextButton(onClick = { selected?.let { model.deletePreset(it.id) }; deleting = false }) { Text(t("preset_delete")) } },
+        dismissButton = { TextButton(onClick = { deleting = false }) { Text(t("close")) } })
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -255,7 +374,7 @@ private fun Choice(label: String, value: String, choices: List<String>, display:
         Box {
             OutlinedButton(onClick = { expanded = true }, enabled = enabled, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 shape = RoundedCornerShape(6.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface, containerColor = MaterialTheme.colorScheme.surface)) { Text(display(value), Modifier.weight(1f)); Text("⌄") }
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface, containerColor = MaterialTheme.colorScheme.surface)) { Text(display(value), Modifier.weight(1f)); Spacer(Modifier.width(8.dp)); DropdownArrow(expanded) }
             DropdownMenu(expanded, { expanded = false }) {
                 choices.forEach { choice -> DropdownMenuItem(text = { Text(display(choice)) },
                     onClick = { onSelected(choice); expanded = false }) }

@@ -13,6 +13,7 @@ data class PasswordConfig(
     val special: Boolean = true,
     val words: Int = 3,
     val separator: String = "-",
+    val excludeSimilar: Boolean = false,
 )
 
 class GenerationException(val code: String, message: String) : IllegalArgumentException(message)
@@ -23,6 +24,7 @@ private inline fun validate(condition: Boolean, code: String, message: () -> Str
 
 class PasswordGenerator(private val random: SecureRandom = SecureRandom()) {
     companion object {
+        const val SIMILAR_CHARACTERS = "0Oo1Il"
         const val LOWERCASE = "abcdefghijklmnopqrstuvwxyz"
         const val UPPERCASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         const val DIGITS = "0123456789"
@@ -38,12 +40,14 @@ class PasswordGenerator(private val random: SecureRandom = SecureRandom()) {
 
     fun generateManager(config: PasswordConfig): String {
         validate(config.length >= 1, "invalid_length") { "Długość hasła musi wynosić co najmniej 1." }
-        val sets = buildList {
+        val selectedSets = buildList {
             if (config.lowercase) add(LOWERCASE)
             if (config.uppercase) add(UPPERCASE)
             if (config.numbers) add(DIGITS)
             if (config.special) add(SPECIAL)
         }
+        val sets = selectedSets.map { pool -> if (config.excludeSimilar) pool.filterNot { it in SIMILAR_CHARACTERS } else pool }
+        validate(sets.all { it.isNotEmpty() }, "empty_characters") { "Brak dostępnych znaków w wybranym zestawie." }
         validate(sets.isNotEmpty(), "no_sets") { "Wybierz co najmniej jeden zestaw znaków." }
         validate(config.length >= sets.size, "short_length") {
             "Hasło jest za krótkie dla wybranych zestawów znaków."

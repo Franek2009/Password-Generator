@@ -3,6 +3,7 @@ package pl.franek.passwordgenerator
 import android.app.Application
 import android.graphics.Bitmap
 import androidx.compose.ui.test.*
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -23,11 +24,14 @@ class UnifiedUiTest {
         rule.waitForIdle()
     }
 
-    @Test fun languageThemeModeAndRotationPreserveTheCurrentPassword() {
-        update { UiState(language = "en", theme = "light", length = 32, password = "Public-test-example") }
+    @Test fun modeClearsResultWhileLanguageThemeAndRotationPreserveConfiguration() {
+        update { UiState(language = "en", theme = "light", length = 32) }
+        update { it.copy(password = "Public-test-example") }
         rule.onNodeWithText("Random password").assertExists()
         rule.onNodeWithText("Passphrase").performClick()
         rule.onNodeWithText("Word separator").assertExists()
+        rule.runOnIdle { assertEquals("", model.state.password) }
+        update { it.copy(password = "Public-phrase-result") }
         update { it.copy(language = "pl", theme = "dark", humanNumbers = false) }
         rule.onNodeWithText("Fraza słowna").assertExists()
         rule.activityRule.scenario.onActivity { it.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE }
@@ -35,7 +39,7 @@ class UnifiedUiTest {
         rule.activityRule.scenario.recreate()
         rule.waitForIdle()
         rule.runOnIdle {
-            assertEquals("Public-test-example", model.state.password)
+            assertEquals("Public-phrase-result", model.state.password)
             assertEquals(32, model.state.length)
             assertFalse(model.state.humanNumbers)
             assertTrue(model.state.managerNumbers)
@@ -47,7 +51,8 @@ class UnifiedUiTest {
     }
 
     @Test fun copyingAndSettingsUseTheCurrentLanguage() {
-        update { UiState(language = "en", theme = "light", password = "Public-test-example") }
+        update { UiState(language = "en", theme = "light") }
+        update { it.copy(password = "Public-test-example") }
         rule.onNodeWithContentDescription("Copy password").performClick()
         rule.onNodeWithText("Password copied").assertExists()
         rule.onNodeWithContentDescription("More options").performClick()
@@ -60,7 +65,7 @@ class UnifiedUiTest {
 
     @Test fun captureReviewScreenshots() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val output = File(instrumentation.targetContext.getExternalFilesDir(null), "ui-preview").apply { mkdirs() }
+        val output = File(instrumentation.targetContext.getExternalFilesDir(null), "v120-preview").apply { mkdirs() }
         fun screenshot(name: String) {
             rule.waitForIdle()
             instrumentation.waitForIdleSync()
@@ -71,9 +76,21 @@ class UnifiedUiTest {
             }
         }
         for (theme in listOf("dark", "light")) {
-            update { UiState(theme = theme, language = "pl", password = "k8Z!rQ4#mP9vL2@tX") }
+            update { UiState(theme = theme, language = "pl", length = 16, transcription = true, excludeSimilar = true) }
+            update { it.copy(password = "k8Z!rQ4#mP9vL2@t") }
             screenshot("android-$theme-random.png")
-            update { it.copy(mode = PasswordMode.HUMAN, password = "Rower-Las-Zamek-42-!") }
+            rule.onNodeWithText("Własna konfiguracja").performClick()
+            screenshot("android-$theme-presets.png")
+            rule.onNodeWithText("Mocne").performClick()
+            rule.waitUntil(5000) { !model.working }
+            update { it.copy(excludeSimilar = true) }
+            rule.onNodeWithText("Generuj hasło").performScrollTo()
+            screenshot("android-$theme-options.png")
+            rule.onNode(hasScrollAction() and hasAnyDescendant(hasText("Generuj hasło")))
+                .performSemanticsAction(SemanticsActions.ScrollBy) { it(0f, -10000f) }
+            rule.runOnIdle { model.applyPreset("phrase") }
+            rule.waitUntil(5000) { !model.working }
+            update { it.copy(password = "Rower-Las-Zamek-Polana-Dom") }
             screenshot("android-$theme-phrase.png")
             rule.onNodeWithContentDescription("Więcej opcji").performClick()
             rule.onNodeWithText("Ustawienia").performClick()

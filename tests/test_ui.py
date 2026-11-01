@@ -1,12 +1,11 @@
 import pytest
-
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtCore import QSettings
+from PySide6.QtWidgets import QApplication
 
 from app.config import PasswordMode
 from app.generator import RANDOM_SEPARATORS
-from app.ui import MainWindow
 from app.presentation import Preferences
-from PySide6.QtCore import QSettings
+from app.ui import MainWindow
 
 
 @pytest.fixture
@@ -424,3 +423,169 @@ def test_cancelled_or_invalid_wordlist_keeps_previous_selection(
     )
     window.wordlist_combo.setCurrentIndex(window.wordlist_combo.count() - 1)
     assert window.custom_wordlist_path == str(words)
+
+
+def test_presets_restore_controls_and_preserve_inactive_mode(window):
+    window.words_spin.setValue(7)
+    window.apply_preset(window.presets.all[1])
+    assert window.length_spin.value() == 24
+    assert window.length_slider.value() == 24
+    assert window.words_spin.value() == 7
+    assert window.uppercase_checkbox.isChecked()
+    window.generate_button.click()
+    window.apply_preset(window.presets.all[2])
+    assert window.tabs.currentIndex() == 1
+    assert window.words_spin.value() == 5
+    assert not window.human_numbers_checkbox.isChecked()
+    assert not window.human_special_checkbox.isChecked()
+    assert window.separator_combo.currentData() == "-"
+    assert window.custom_wordlist_path is None
+    assert window.password_field.text() == ""
+    assert window.length_spin.value() == 24
+
+
+def test_saved_preset_restores_exclusion_and_restarts(window, qtbot):
+    window.length_spin.setValue(48)
+    window.exclude_similar_checkbox.setChecked(True)
+    preset = window.save_preset("Travel")
+    window.length_spin.setValue(16)
+    assert window.preset_combo.currentData() == ""
+    replacement = MainWindow(Preferences(window.preferences.store))
+    qtbot.addWidget(replacement)
+    replacement.apply_preset(replacement.presets.custom[0])
+    assert replacement.preset_combo.currentData() == preset.id
+    assert replacement.length_spin.value() == 48
+    assert replacement.exclude_similar_checkbox.isChecked()
+    assert replacement.preferences.values["exclude_similar"]
+
+
+def test_unavailable_preset_dictionary_is_atomic(window, tmp_path):
+    from app.presets import Preset
+
+    window.generate_button.click()
+    previous = window.password_field.text()
+    preset = Preset(
+        "custom-missing",
+        "Missing",
+        {
+            "mode": "human",
+            "words": 5,
+            "separator": "-",
+            "numbers": False,
+            "special": False,
+            "wordlist": str(tmp_path / "missing"),
+        },
+    )
+    assert not window.apply_preset(preset)
+    assert window.tabs.currentIndex() == 0
+    assert window.password_field.text() == previous
+    assert window.custom_wordlist_path is None
+
+
+def test_transcription_keeps_original_for_every_copy_route(window, qtbot):
+    from PySide6.QtGui import QKeySequence, QTextCursor
+
+    raw = "kR7!mP4#zQ9@" * 5
+    window.password_field.setText(raw)
+    window.transcription_checkbox.setChecked(True)
+    assert window.password_field.text() == raw
+    window.copy_button.click()
+    assert QApplication.clipboard().text() == raw
+    window.password_field.selectAll()
+    qtbot.keySequence(window.password_field, QKeySequence.Copy)
+    assert QApplication.clipboard().text() == raw
+    # Typography adds gaps without changing the document or accessibility value.
+    cursor = QTextCursor(window.password_field.document())
+    cursor.setPosition(4)
+    assert cursor.charFormat().fontLetterSpacing() == 14
+    window.transcription_checkbox.setChecked(False)
+    assert window.password_field.text() == raw
+    assert cursor.charFormat().fontLetterSpacing() == 0
+
+
+def test_phrase_transcription_and_long_result_preserve_separators(window):
+    window.tabs.setCurrentIndex(1)
+    phrase = ("VeryLongWord  AnotherLongWord/" * 20) + "End"
+    window.password_field.setText(phrase)
+    window.transcription_checkbox.setChecked(True)
+    assert window.password_field.toPlainText() == phrase
+    window.copy_button.click()
+    assert QApplication.clipboard().text() == phrase
+    window.tabs.setCurrentIndex(0)
+    assert not window.password_field.text()
+    assert not window.copy_button.isEnabled()
+    assert QApplication.clipboard().text() == phrase
+
+
+def test_settings_and_presets_never_contain_result(window):
+    raw = "SENTINEL-should-never-be-persisted-9274"
+    window.password_field.setText(raw)
+    window.transcription_checkbox.setChecked(True)
+    window.save_preset("Public configuration")
+    window.preferences.store.sync()
+    saved = str(
+        {
+            k: window.preferences.store.value(k)
+            for k in window.preferences.store.allKeys()
+        }
+    )
+    assert raw not in saved
+    assert "SENTINEL" not in saved
+    assert "9274" not in saved
+
+
+def test_missing_dictionary_at_restart_is_not_replaced(window, qtbot, tmp_path):
+    missing = str(tmp_path / "deleted-words.txt")
+    window.preferences.set("wordlist", missing)
+    window.preferences.set("mode", 1)
+    restarted = MainWindow(Preferences(window.preferences.store))
+    qtbot.addWidget(restarted)
+    assert restarted.custom_wordlist_path == missing
+    restarted.generate_button.click()
+    assert not restarted.password_field.text()
+    assert restarted.preferences.values["wordlist"] == missing
+
+
+def test_deleted_dictionary_does_not_generate_using_builtin(window, tmp_path):
+    words = tmp_path / "deleted-words.txt"
+    words.write_text("kot\npies\n", encoding="utf-8")
+    window.tabs.setCurrentIndex(1)
+    window.custom_wordlist_path = str(words)
+    preset = window.save_preset("Temporary words")
+    window.apply_preset(window.presets.all[0])
+    words.unlink()
+    assert not window.apply_preset(preset)
+    assert window.tabs.currentIndex() == 0
+
+
+def test_save_and_delete_menu_actions_preserve_current_configuration(
+    window, monkeypatch
+):
+    from PySide6.QtWidgets import QInputDialog, QMessageBox
+
+    window.length_spin.setValue(32)
+    window.generate_button.click()
+    previous = window.password_field.text()
+    monkeypatch.setattr(QInputDialog, "getText", lambda *args: ("Menu preset", True))
+    window.save_preset_action.trigger()
+    assert window.presets.custom[0].name == "Menu preset"
+    assert window.delete_preset_action.isEnabled()
+    monkeypatch.setattr(QMessageBox, "question", lambda *args: QMessageBox.Yes)
+    window.delete_preset_action.trigger()
+    assert not window.presets.custom
+    assert window.length_spin.value() == 32
+    assert window.password_field.text() == previous
+    assert not window.delete_preset_action.isEnabled()
+
+
+def test_copy_preserves_unicode_spaces_from_custom_words(window):
+    original = "Word\u00a0Part-Other\u2028Part"
+    window.tabs.setCurrentIndex(1)
+    window.password_field.setText(original)
+    window.transcription_checkbox.setChecked(True)
+    window.copy_button.click()
+    assert window.password_field.text() == original
+    assert QApplication.clipboard().text() == original
+    window.password_field.clear()
+    assert not window.password_field.text()
+    assert not window.copy_button.isEnabled()

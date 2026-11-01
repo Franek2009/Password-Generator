@@ -36,6 +36,7 @@ class SharedUi(context: Context) {
 }
 
 data class UiState(
+    val excludeSimilar: Boolean = false, val transcription: Boolean = false,
     val mode: PasswordMode = PasswordMode.MANAGER,
     val length: Int = 20, val words: Int = 3, val separator: String = "-",
     val uppercase: Boolean = true, val lowercase: Boolean = true,
@@ -48,7 +49,18 @@ data class UiState(
 class GeneratorViewModel(application: Application) : AndroidViewModel(application) {
     private val preferences = application.getSharedPreferences("generator", Context.MODE_PRIVATE)
     private val generator = PasswordGenerator()
-    private var customWords: List<String>? = null
+    private var revision = 0L
+    private val storedPresets = preferences.all["presets"]
+    private val decodedPresets = when (val raw = storedPresets) {
+        null -> emptyList<Preset>() to false
+        is String -> Presets.decode(raw)
+        else -> emptyList<Preset>() to true
+    }
+    var customPresets by mutableStateOf(decodedPresets.first)
+        private set
+    var selectedPreset by mutableStateOf("")
+        private set
+    val presets get() = Presets.builtins() + customPresets
     var state by mutableStateOf(readPreferences())
         private set
     var message by mutableStateOf<String?>(null)
@@ -57,17 +69,48 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
         private set
 
     init {
-        if (state.wordlist.isNotEmpty()) {
-            working = true
-            viewModelScope.launch {
-                try {
-                    customWords = withContext(Dispatchers.IO) { readWords(Uri.parse(state.wordlist)) }
-                } catch (error: Exception) {
-                    if (error is CancellationException) throw error
-                    update { it.copy(wordlist = "", wordlistName = "") }
-                    message = "wordlist_restored"
-                } finally { working = false }
-            }
+        if (decodedPresets.second) message = "preset_invalid"
+    }
+
+    fun savePreset(name: String) {
+        try {
+            val preset = Presets.create(name, state, customPresets)
+            customPresets = customPresets + preset
+            selectedPreset = preset.id
+            writePresets()
+        } catch (error: IllegalArgumentException) { message = error.message ?: "preset_invalid" }
+    }
+
+    fun deletePreset(id: String) {
+        if (customPresets.none { it.id == id }) return
+        customPresets = customPresets.filterNot { it.id == id }
+        if (selectedPreset == id) selectedPreset = ""
+        writePresets()
+    }
+
+    private fun writePresets() { preferences.edit().putString("presets", Presets.encode(customPresets)).apply() }
+
+    fun applyPreset(id: String) {
+        if (working) return
+        val preset = presets.find { it.id == id } ?: return
+        val snapshot = state
+        val requestRevision = revision
+        working = true
+        viewModelScope.launch {
+            try {
+                val next = Presets.apply(snapshot, preset)
+                if (next.mode == PasswordMode.HUMAN && next.wordlist.isNotEmpty()) {
+                    withContext(Dispatchers.IO) { readWords(Uri.parse(next.wordlist)) }
+                }
+                if (requestRevision == revision) {
+                    update { next.copy(language = it.language, theme = it.theme, autoCopy = it.autoCopy, transcription = it.transcription) }
+                    revision++ // Also invalidate pending work when reapplying an identical preset.
+                    selectedPreset = id
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                if (requestRevision == revision) message = errorCode(error)
+            } finally { working = false }
         }
     }
 
@@ -77,6 +120,7 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
         fun bool(key: String, default: Boolean = true) = values[key] as? Boolean ?: default
         fun choice(key: String, default: String, options: List<String>) = (values[key] as? String)?.takeIf { it in options } ?: default
         return UiState(
+            excludeSimilar = bool("excludeSimilar", false), transcription = bool("transcription", false),
             mode = if (values["mode"] == "human") PasswordMode.HUMAN else PasswordMode.MANAGER,
             length = number("length", 20, 8..64), words = number("words", 3, 2..8),
             separator = choice("separator", "-", PasswordGenerator.SEPARATORS + "Random"),
@@ -91,8 +135,14 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun update(transform: (UiState) -> UiState) {
-        state = transform(state)
+        val next = transform(state)
+        if (Presets.parameters(next) != Presets.parameters(state)) {
+            revision++
+            selectedPreset = ""
+        }
+        state = if (next.mode != state.mode) next.copy(password = "") else next
         preferences.edit().apply {
+            putBoolean("excludeSimilar", state.excludeSimilar); putBoolean("transcription", state.transcription)
             putString("mode", if (state.mode == PasswordMode.HUMAN) "human" else "manager")
             putInt("length", state.length); putInt("words", state.words); putString("separator", state.separator)
             putBoolean("uppercase", state.uppercase); putBoolean("lowercase", state.lowercase)
@@ -104,7 +154,7 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun clearMessage() { message = null }
-    fun useBuiltIn() { customWords = null; update { it.copy(wordlist = "", wordlistName = "") } }
+    fun useBuiltIn() { update { it.copy(wordlist = "", wordlistName = "") } }
 
     private fun readWords(uri: Uri): List<String> {
         val decoder = Charsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT)
@@ -118,6 +168,8 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun chooseWordlist(uri: Uri) {
+        if (working) return
+        val requestRevision = revision
         working = true
         viewModelScope.launch {
             try {
@@ -130,34 +182,37 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
                     words to name
                 }
                 resolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                customWords = result.first
-                update { it.copy(wordlist = uri.toString(), wordlistName = result.second) }
+                if (requestRevision == revision) update { it.copy(wordlist = uri.toString(), wordlistName = result.second) }
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
-                message = errorCode(error)
+                if (requestRevision == revision) message = errorCode(error)
             }
             finally { working = false }
         }
     }
 
     fun generate() {
+        if (working) return
+        val requestRevision = revision
         val snapshot = state
         working = true
         viewModelScope.launch {
             try {
                 val password = withContext(Dispatchers.IO) {
-                    val words = if (snapshot.mode == PasswordMode.HUMAN) customWords ?: getApplication<Application>().assets.open("words.txt")
+                    val words = if (snapshot.mode == PasswordMode.HUMAN) if (snapshot.wordlist.isNotEmpty()) readWords(Uri.parse(snapshot.wordlist)) else getApplication<Application>().assets.open("words.txt")
                         .bufferedReader(Charsets.UTF_8).use { it.lineSequence().map(String::trim).filter(String::isNotEmpty).toList() } else emptyList()
                     generator.generate(PasswordConfig(snapshot.mode, snapshot.length, snapshot.uppercase, snapshot.lowercase,
                         if (snapshot.mode == PasswordMode.HUMAN) snapshot.humanNumbers else snapshot.managerNumbers,
                         if (snapshot.mode == PasswordMode.HUMAN) snapshot.humanSpecial else snapshot.managerSpecial,
-                        snapshot.words, snapshot.separator), words)
+                        snapshot.words, snapshot.separator, snapshot.excludeSimilar), words)
                 }
-                state = state.copy(password = password)
-                if (state.autoCopy) copy()
+                if (requestRevision == revision) {
+                    state = state.copy(password = password)
+                    if (state.autoCopy) copy()
+                }
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
-                message = errorCode(error)
+                if (requestRevision == revision) message = errorCode(error)
             }
             finally { working = false }
         }

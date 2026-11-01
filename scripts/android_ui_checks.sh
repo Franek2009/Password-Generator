@@ -20,7 +20,7 @@ if [ "$result" -eq 0 ]; then
     > "$output/capture.txt" 2>&1 || result=$?
   cat "$output/capture.txt"
   if ! grep -Eq '^OK \(1 test\)' "$output/capture.txt"; then result=1; fi
-  adb pull /sdcard/Android/data/pl.franek.passwordgenerator/files/ui-preview "$output/" || result=1
+  adb pull /sdcard/Android/data/pl.franek.passwordgenerator/files/v120-preview "$output/" || result=1
 fi
 adb logcat -d > "$output/logcat.txt" || true
 exit "$result"

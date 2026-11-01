@@ -11,6 +11,8 @@ DEFAULTS = {
     "language": "system",
     "theme": "system",
     "auto_copy": False,
+    "transcription": False,
+    "exclude_similar": False,
     "mode": 0,
     "length": 20,
     "words": 3,

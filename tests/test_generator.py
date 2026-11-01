@@ -639,3 +639,60 @@ def test_human_password_with_custom_wordlist_keeps_unique_words(
 
     assert len(words) == 4
     assert len(set(words)) == 4
+
+
+@pytest.mark.parametrize("mask", range(1, 16))
+def test_exclusion_preserves_every_selected_group(mask):
+    import string
+    from app.generator import SIMILAR_CHARACTERS
+
+    groups = [
+        string.ascii_uppercase,
+        string.ascii_lowercase,
+        string.digits,
+        string.punctuation,
+    ]
+    flags = [bool(mask & (1 << i)) for i in range(4)]
+    config = PasswordConfig(
+        length=64,
+        uppercase=flags[0],
+        lowercase=flags[1],
+        numbers=flags[2],
+        special=flags[3],
+        exclude_similar=True,
+    )
+    for _ in range(20):
+        password = generate_password(config)
+        assert len(password) == 64
+        assert not set(password) & set(SIMILAR_CHARACTERS)
+        for enabled, group in zip(flags, groups):
+            if enabled:
+                assert set(password) & set(group)
+        assert set(password) <= set(
+            "".join(g for enabled, g in zip(flags, groups) if enabled)
+        )
+
+
+def test_empty_filtered_group_is_an_error(monkeypatch):
+    import string
+
+    monkeypatch.setattr(string, "ascii_lowercase", "ol")
+    with pytest.raises(ValueError) as error:
+        generate_password(PasswordConfig(exclude_similar=True))
+    assert error.value.code == "empty_characters"
+
+
+def test_exclusion_does_not_filter_words(tmp_path):
+    words = tmp_path / "words.txt"
+    words.write_text("olive\n", encoding="utf-8")
+    result = generate_password(
+        PasswordConfig(
+            mode=PasswordMode.HUMAN,
+            words=2,
+            numbers=False,
+            special=False,
+            wordlist_path=str(words),
+            exclude_similar=True,
+        )
+    )
+    assert result == "Olive-Olive"

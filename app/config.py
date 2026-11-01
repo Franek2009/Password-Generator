@@ -32,6 +32,8 @@ class PasswordConfig:
     separator: str = "-"
     wordlist_path: str | None = None
 
+    exclude_similar: bool = False
+
     def validate(self) -> None:
         if self.mode == PasswordMode.MANAGER:
             self._validate_manager()

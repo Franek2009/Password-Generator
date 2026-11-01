@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "similar_characters": "0Oo1Il",
+  "builtins": [
+    {
+      "id": "standard",
+      "config": {
+        "mode": "manager",
+        "length": 16,
+        "uppercase": true,
+        "lowercase": true,
+        "numbers": true,
+        "special": true,
+        "exclude_similar": false
+      }
+    },
+    {
+      "id": "strong",
+      "config": {
+        "mode": "manager",
+        "length": 24,
+        "uppercase": true,
+        "lowercase": true,
+        "numbers": true,
+        "special": true,
+        "exclude_similar": false
+      }
+    },
+    {
+      "id": "phrase",
+      "config": {
+        "mode": "human",
+        "words": 5,
+        "separator": "-",
+        "numbers": false,
+        "special": false,
+        "wordlist": ""
+      }
+    }
+  ]
+}
