@@ -29,51 +29,33 @@ both generation modes, the built-in Polish word list, custom text word lists
 and clipboard copying. Open that directory in Android Studio to build and run
 the application. See [`android/README.md`](android/README.md) for requirements.
 
-## Download — current UI v1.1.0
+## Download
 
-**The new v1.1.0 interface is already merged into `master`.**
-The latest published release is still v1.0.4 and has the previous interface.
-Until v1.1.0 is published, use the signed preview downloads below for the new UI.
+**The latest release includes the unified desktop and Android interface shown below.**
+Download the package for your operating system; no GitHub login is needed.
 
-### New UI preview — v1.1.0
-
-| Platform | Preview download | Contents |
-| --- | --- | --- |
-| Android 8.0+ | [Signed APK artifact](https://github.com/Franek2009/Password-Generator/actions/runs/41237143305/artifacts/13055587407) | New UI; application version 1.1.0, code 1001000 |
-| Linux x86-64 | [Linux preview artifact](https://github.com/Franek2009/Password-Generator/actions/runs/41190912554/artifacts/13037984990) | New UI; development build |
-| Windows x86-64 | [Windows preview artifact](https://github.com/Franek2009/Password-Generator/actions/runs/41190912554/artifacts/13039125190) | New UI; development build |
-
-**Sign in to GitHub to download Actions artifacts.** Open the platform link,
-download the artifact and extract the downloaded archive if necessary. On
-Android, install the enclosed `PasswordGenerator-android.apk`, not the ZIP.
-The signed Android preview updates v1.0.4 using the same signing key.
-Desktop preview packages identify themselves as development builds.
-
-Actions artifacts have limited retention. If a link expires, use the
-[preview build instructions](https://github.com/Franek2009/Password-Generator/blob/master/android/README.md#podgląd-nowego-interfejsu-v110)
-or the [preview PR](https://github.com/Franek2009/Password-Generator/pull/1).
-The UI implementation is on `master`; a public v1.1.0 Release has not yet been published.
-
-### Stable v1.0.4 — previous UI
-
-| Platform | Stable download |
+| Platform | Download |
 | --- | --- |
-| Android 8.0+ | [APK v1.0.4](https://github.com/Franek2009/Password-Generator/releases/download/v1.0.4/PasswordGenerator-android.apk) |
-| Linux x86-64 | [Linux v1.0.4](https://github.com/Franek2009/Password-Generator/releases/download/v1.0.4/PasswordGenerator-linux-x86_64.tar.gz) |
-| Windows x86-64 | [Windows v1.0.4](https://github.com/Franek2009/Password-Generator/releases/download/v1.0.4/PasswordGenerator-windows-x86_64.zip) |
+| Android 8.0+ | [Android APK](https://github.com/Franek2009/Password-Generator/releases/latest/download/PasswordGenerator-android.apk) |
+| Linux x86-64 | [Linux archive](https://github.com/Franek2009/Password-Generator/releases/latest/download/PasswordGenerator-linux-x86_64.tar.gz) |
+| Windows x86-64 | [Windows archive](https://github.com/Franek2009/Password-Generator/releases/latest/download/PasswordGenerator-windows-x86_64.zip) |
 
-[Stable release details](https://github.com/Franek2009/Password-Generator/releases/tag/v1.0.4).
-These files do **not** contain the redesigned UI.
+[Latest release notes and all files](https://github.com/Franek2009/Password-Generator/releases/latest). Android installs as an
+update using the existing signing key. Compare the version in Android app info
+with the version shown on the release page.
+
+[Third-party dependency sources](https://github.com/Franek2009/Password-Generator/releases/latest/download/PasswordGenerator-third-party-sources.tar.gz)
+are provided for license compliance; they are not required to run the app.
 
 ## Screenshots — current interface
 
-These are actual captures of the redesigned interface, **not screenshots of
-stable v1.0.4**. Example passwords are public demonstration strings.
+These captures show the v1.1.0 interface available in the downloads above.
+Example passwords are public demonstration strings.
 
 | Platform | Dark theme | Light theme |
 | --- | --- | --- |
-| Desktop | ![Desktop preview, dark theme](docs/ui-preview/desktop-dark-random.png) | ![Desktop preview, light theme](docs/ui-preview/desktop-light-random.png) |
-| Android | ![Android preview, dark theme](docs/ui-preview/android-dark-random.png) | ![Android preview, light theme](docs/ui-preview/android-light-random.png) |
+| Desktop | ![Desktop v1.1.0, dark theme](docs/ui-preview/desktop-dark-random.png) | ![Desktop v1.1.0, light theme](docs/ui-preview/desktop-light-random.png) |
+| Android | ![Android v1.1.0, dark theme](docs/ui-preview/android-dark-random.png) | ![Android v1.1.0, light theme](docs/ui-preview/android-light-random.png) |
 
 [Full desktop/Android gallery: passphrases, settings, English and larger fonts](docs/ui-preview/README.md).
 
@@ -109,9 +91,6 @@ project's GitHub Releases page before choosing to run it.
 
 ### Random Password Mode
 
-In stable v1.0.4 this mode is labelled **Password Manager**; the preview uses
-the **Random password** tab.
-
 Random password mode generates highly random passwords. The following
 character sets can be enabled independently:
 
@@ -128,9 +107,6 @@ least one character from every selected set is present, provided the requested
 length is sufficient.
 
 ### Passphrase Mode
-
-In stable v1.0.4 this mode is labelled **Human**; the preview uses the
-**Passphrase** tab.
 
 Passphrase mode generates more readable passwords from randomly selected words.
 The user can configure:
@@ -338,6 +314,8 @@ Password-Generator/
 │   ├── release.yml
 │   └── tests.yml
 ├── app/
+│   ├── errors.py
+│   ├── presentation.py
 │   ├── application.py
 │   ├── config.py
 │   ├── generator.py
@@ -349,6 +327,7 @@ Password-Generator/
 │   ├── icon.svg
 │   └── README.md
 ├── data/
+│   ├── ui.json
 │   ├── words.txt
 │   └── README.md
 ├── tests/
