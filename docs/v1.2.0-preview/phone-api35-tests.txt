@@ -1,0 +1,6 @@
+pl.franek.passwordgenerator.GeneratorFeaturesTest:.......
+pl.franek.passwordgenerator.UnifiedUiTest:...
+
+Time: 44,507
+
+OK (10 tests)

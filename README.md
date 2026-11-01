@@ -154,7 +154,9 @@ the generated password.
 
 Words are selected without replacement when the list contains enough entries.
 If more words are requested than are available, the remaining words are
-selected with replacement. Words are capitalized before they are combined.
+selected with replacement. The first Unicode character of each word is uppercased before combining;
+the remaining characters retain their original case (for example, `iPhone`
+becomes `IPhone` on both desktop and Android in the development version).
 
 Example output:
 

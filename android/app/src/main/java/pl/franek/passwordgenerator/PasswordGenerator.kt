@@ -1,6 +1,7 @@
 package pl.franek.passwordgenerator
 
 import java.security.SecureRandom
+import java.util.Locale
 
 enum class PasswordMode { MANAGER, HUMAN }
 
@@ -75,7 +76,11 @@ class PasswordGenerator(private val random: SecureRandom = SecureRandom()) {
             config.separator
         }
         val selected = selectWords(wordList, config.words)
-            .map { word -> word.replaceFirstChar { it.uppercase() } }
+            .map { word ->
+                // Match Python by operating on the first Unicode code point, not a UTF-16 half.
+                val firstEnd = if (word.isEmpty()) 0 else word.offsetByCodePoints(0, 1)
+                word.substring(0, firstEnd).uppercase(Locale.ROOT) + word.substring(firstEnd)
+            }
             .toMutableList()
         if (config.numbers) selected += random.nextInt(100).toString()
         if (config.special) {

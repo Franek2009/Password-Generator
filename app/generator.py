@@ -32,7 +32,9 @@ def _generate_human_password(config: PasswordConfig) -> str:
     if not words:
         raise GenerationError("empty_words", "Word list cannot be empty.")
 
-    selected_words = [word.capitalize() for word in _select_words(words, config.words)]
+    selected_words = [
+        word[:1].upper() + word[1:] for word in _select_words(words, config.words)
+    ]
 
     if config.separator == "Random":
         separator = secrets.choice(RANDOM_SEPARATORS)

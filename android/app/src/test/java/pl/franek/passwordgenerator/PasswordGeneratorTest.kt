@@ -3,6 +3,8 @@ package pl.franek.passwordgenerator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.json.JSONArray
+import java.util.Locale
 
 class PasswordGeneratorTest {
     private val generator = PasswordGenerator()
@@ -62,4 +64,22 @@ class PasswordGeneratorTest {
             assertEquals("no_sets", error.code)
         }
     }
+    @Test
+    fun customWordCaseMatchesDesktopRegardlessOfLocaleAndExclusion() {
+        val cases = JSONArray(javaClass.getResource("/word_case_contract.json")!!.readText())
+        val previous = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"))
+            for (excluded in listOf(false, true)) for (i in 0 until cases.length()) {
+                val case = cases.getJSONObject(i)
+                val result = generator.generateHuman(
+                    PasswordConfig(mode = PasswordMode.HUMAN, words = 2, separator = "-",
+                        numbers = false, special = false, excludeSimilar = excluded),
+                    listOf(case.getString("input")),
+                )
+                assertEquals(List(2) { case.getString("expected") }.joinToString("-"), result)
+            }
+        } finally { Locale.setDefault(previous) }
+    }
+
 }

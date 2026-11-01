@@ -696,3 +696,19 @@ def test_exclusion_does_not_filter_words(tmp_path):
         )
     )
     assert result == "Olive-Olive"
+
+
+@pytest.mark.parametrize("exclude_similar", [False, True])
+def test_custom_word_case_matches_android_contract(tmp_path, exclude_similar):
+    import json
+    from pathlib import Path
+
+    cases = json.loads((Path(__file__).parent / "fixtures/word_case_contract.json").read_text(encoding="utf-8"))
+    wordlist = tmp_path / "mixed-case.txt"
+    for case in cases:
+        wordlist.write_text(case["input"] + "\n", encoding="utf-8")
+        result = generate_password(PasswordConfig(
+            mode=PasswordMode.HUMAN, words=2, separator="-", numbers=False,
+            special=False, wordlist_path=str(wordlist), exclude_similar=exclude_similar,
+        ))
+        assert result == "-".join([case["expected"]] * 2)

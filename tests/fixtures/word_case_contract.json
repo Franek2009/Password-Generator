@@ -1,0 +1,42 @@
+[
+  {
+    "input": "iPhone",
+    "expected": "IPhone"
+  },
+  {
+    "input": "ŻÓŁĆ",
+    "expected": "ŻÓŁĆ"
+  },
+  {
+    "input": "żółć",
+    "expected": "Żółć"
+  },
+  {
+    "input": "iSTANBUL",
+    "expected": "ISTANBUL"
+  },
+  {
+    "input": "ßeta",
+    "expected": "SSeta"
+  },
+  {
+    "input": "ǳabc",
+    "expected": "Ǳabc"
+  },
+  {
+    "input": "𐐨Mixed",
+    "expected": "𐐀Mixed"
+  },
+  {
+    "input": "éCase",
+    "expected": "ÉCase"
+  },
+  {
+    "input": "😀Case",
+    "expected": "😀Case"
+  },
+  {
+    "input": "x",
+    "expected": "X"
+  }
+]

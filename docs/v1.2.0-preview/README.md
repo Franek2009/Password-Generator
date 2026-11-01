@@ -47,3 +47,15 @@ them into this gallery. Device rotation and large font tests are included.
 The images are screenshots, not generated mockups. Only public example values
 are seeded in memory by the preview scripts/tests. Test configuration and preset
 storage are checked separately to ensure they contain no result or fragments.
+
+## Capture provenance
+
+The Android images above were refreshed from the physical Samsung SM-A145R
+(Android 15 / API 35), captured in landscape by the rotation/capture tests.
+They include the corrected vector dropdown arrows. They depict commit
+`6142788e7453e365925bd9140c477efd02103ebb`, before the subsequent generator-only
+word-case consistency correction. The public demonstration strings are unchanged
+by that correction. Desktop captures use the isolated preview script.
+
+[Physical-phone test output: 10 passed](phone-api35-tests.txt).
+[Test handoff and remaining acceptance checks](../v1.2.0-validation.md).
