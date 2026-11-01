@@ -18,9 +18,9 @@ podpisywania i aktualizuje poprzednie wydania.
 
 | Ciemny motyw | Jasny motyw |
 | --- | --- |
-| ![Android v1.1.0 — ciemny motyw](../docs/ui-preview/android-dark-random.png) | ![Android v1.1.0 — jasny motyw](../docs/ui-preview/android-light-random.png) |
+| ![Android v1.2.0 — ciemny motyw](../docs/v1.2.0-preview/android-dark-random.png) | ![Android v1.2.0 — jasny motyw](../docs/v1.2.0-preview/android-light-random.png) |
 
-[Pełna galeria telefonu i desktopu, ustawień oraz fraz słownych](../docs/ui-preview/README.md).
+[Pełna galeria telefonu i desktopu, ustawień oraz fraz słownych](../docs/v1.2.0-preview/README.md).
 
 ## Uruchomienie
 
@@ -69,7 +69,7 @@ na instalowanie aplikacji z tego źródła. Wymagany jest Android 8.0 lub nowszy
 Przejście z wersji debug może wymagać odinstalowania starej aplikacji,
 ponieważ jest podpisana innym kluczem.
 
-## Interfejs i testy UI v1.1.0
+## Interfejs i testy UI
 
 Ekran generatora i ustawień używa wspólnych tekstów PL/EN i kolorów z desktopem.
 Preferencje zapisuje SharedPreferences. Bieżące hasło jest wyłącznie w ViewModel,
@@ -88,7 +88,7 @@ Sam `connectedDebugAndroidTest` usuwa aplikację po testach wraz z jej plikami;
 skrypt ponownie instaluje te same APK i eksportuje zrzuty przed usunięciem danych.
 
 Zrzuty używają publicznych danych przykładowych. Galeria obu platform jest
-w `docs/ui-preview/`; kod nowego UI został scalony do `master`.
+w `docs/v1.2.0-preview/`; kod nowego UI został scalony do `master`.
 
 Deweloperski podpisany podgląd kolejnej wersji bez publikowania wydania można
 zbudować ręcznie w workflow
@@ -97,7 +97,7 @@ w polu `release_tag`. APK używa
 tego samego identyfikatora i klucza co wydania, więc aktualizuje aplikację.
 Nie tworzy tagu Git ani wpisu w Releases.
 
-## Funkcje przygotowywane do v1.2.0
+## Funkcje v1.2.0
 
 Kod źródłowy zawiera presety Standard, Mocne i Fraza oraz zapis/usuwanie
 własnych konfiguracji. Presety są dostępne pod wynikiem; menu tego wyboru

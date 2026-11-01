@@ -22,10 +22,9 @@ environment.
 * Standalone Linux and Windows builds
 * Native Android application in Kotlin and Jetpack Compose
 
-## In development — planned v1.2.0
+## v1.2.0
 
-These features are available in source and are not yet included in the published
-v1.1.0 packages linked below:
+This release adds the following features on desktop and Android:
 
 * **Presets:** Standard (16 characters), Strong (24 characters), and Phrase
   (5 words, `-`, built-in Polish list, no added numbers or symbols). Select a
@@ -50,8 +49,8 @@ custom word list, including a lost Android document permission, causes an
 error; generation and preset application do not silently substitute a dictionary.
 Choose the built-in list or select the custom file again to recover.
 
-[Development screenshots and validation](docs/v1.2.0-preview/README.md)
-are separate from the current release gallery.
+[Screenshots](docs/v1.2.0-preview/README.md) and the
+[release audit](docs/v1.2.0-audit.md) document the implementation and verification.
 
 ## Android
 
@@ -80,15 +79,17 @@ are provided for license compliance; they are not required to run the app.
 
 ## Screenshots — current interface
 
-These captures show the v1.1.0 interface available in the downloads above.
+These captures show the v1.2.0 interface. Android captures come from a physical
+Samsung phone in landscape orientation.
 Example passwords are public demonstration strings.
 
 | Platform | Dark theme | Light theme |
 | --- | --- | --- |
-| Desktop | ![Desktop v1.1.0, dark theme](docs/ui-preview/desktop-dark-random.png) | ![Desktop v1.1.0, light theme](docs/ui-preview/desktop-light-random.png) |
-| Android | ![Android v1.1.0, dark theme](docs/ui-preview/android-dark-random.png) | ![Android v1.1.0, light theme](docs/ui-preview/android-light-random.png) |
+| Desktop | ![Desktop v1.2.0, dark theme](docs/v1.2.0-preview/desktop-dark-random.png) | ![Desktop v1.2.0, light theme](docs/v1.2.0-preview/desktop-light-random.png) |
+| Android | ![Android v1.2.0, dark theme](docs/v1.2.0-preview/android-dark-random.png) | ![Android v1.2.0, light theme](docs/v1.2.0-preview/android-light-random.png) |
 
-[Full desktop/Android gallery: passphrases, settings, English and larger fonts](docs/ui-preview/README.md).
+[Full desktop/Android gallery](docs/v1.2.0-preview/README.md).
+[Archived v1.1.0 reference gallery](docs/ui-preview/README.md).
 
 ## Running the Standalone Application
 
@@ -156,7 +157,7 @@ Words are selected without replacement when the list contains enough entries.
 If more words are requested than are available, the remaining words are
 selected with replacement. The first Unicode character of each word is uppercased before combining;
 the remaining characters retain their original case (for example, `iPhone`
-becomes `IPhone` on both desktop and Android in the development version).
+becomes `IPhone` on both desktop and Android).
 
 Example output:
 
@@ -445,9 +446,8 @@ and optional automatic copying (off by default). Preferences and each mode's
 configuration survive application restarts. Generated passwords do not.
 Android retains the current result when the device rotates. There is no history.
 
-Custom word lists remain selectable as UTF-8 text files. In v1.1.0, a saved list that becomes
-unavailable is replaced with the built-in Polish list after a warning. The
-development version reports an error and requires an explicit list selection.
+Custom word lists remain selectable as UTF-8 text files. An unavailable saved
+list causes an error and requires an explicit list selection; the application does not silently choose another dictionary.
 Android's clipboard marks copied passwords as sensitive on Android 13+.
 
-See the [review gallery and validation notes](https://github.com/Franek2009/Password-Generator/blob/master/docs/ui-preview/README.md).
+See the [review gallery and validation notes](https://github.com/Franek2009/Password-Generator/blob/master/docs/v1.2.0-preview/README.md).

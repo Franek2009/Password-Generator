@@ -1,0 +1,41 @@
+{
+  "code_commit": "e1c396678bf36d83ba57b07a586e0b38a6e4e515",
+  "python": {
+    "local_passed": 229,
+    "ci_run": 41302168580,
+    "ci_conclusion": "success"
+  },
+  "android_jvm": {
+    "local_passed": 12,
+    "ci_run": 41302168607,
+    "ci_conclusion": "success"
+  },
+  "packages": {
+    "ci_run": 41302168638,
+    "linux": "success",
+    "windows": "success",
+    "linux_provenance_entries": 202,
+    "pinned_corresponding_source_versions": "match"
+  },
+  "android_ui": {
+    "ci_run": 41302207657,
+    "api26": {
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "api35": {
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "limitations": [
+    "Not an independent security certification",
+    "Manual TalkBack/desktop screen reader assessment not documented",
+    "Actual revocation of a previously granted persisted document URI not verified",
+    "Windows warning type not yet confirmed; Windows executable remains unsigned"
+  ]
+}

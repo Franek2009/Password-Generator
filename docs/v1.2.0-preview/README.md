@@ -1,7 +1,7 @@
-# Development preview for planned v1.2.0
+# Screenshots — v1.2.0
 
 These are captures of the running source version, using public demonstration
-strings. They are not a published v1.2.0 release. The
+strings. Capture provenance and the tested source revisions are listed below. The
 [v1.1.0 reference gallery](../ui-preview/README.md) and release downloads remain
 separate.
 
