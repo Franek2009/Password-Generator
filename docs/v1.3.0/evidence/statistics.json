@@ -1,0 +1,1 @@
+{"samples": 140000, "outcomes": 14, "family_wise_alpha": 1e-06, "threshold": 1096, "largest_deviation": 165.0, "passed": true}

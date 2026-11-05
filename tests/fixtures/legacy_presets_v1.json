@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "presets": [
+    {
+      "id": "custom-00000000-0000-4000-8000-000000000001",
+      "name": "Old random",
+      "config": {
+        "mode": "manager",
+        "length": 16,
+        "uppercase": true,
+        "lowercase": true,
+        "numbers": true,
+        "special": true,
+        "exclude_similar": false
+      }
+    },
+    {
+      "id": "custom-00000000-0000-4000-8000-000000000002",
+      "name": "Old phrase",
+      "config": {
+        "mode": "human",
+        "words": 5,
+        "separator": "-",
+        "numbers": false,
+        "special": false,
+        "wordlist": ""
+      }
+    }
+  ]
+}

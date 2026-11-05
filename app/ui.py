@@ -1,5 +1,6 @@
 """Desktop presentation of the shared Password Generator interface."""
 
+from dataclasses import replace
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTemporaryDir, QTimer
@@ -29,6 +30,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.advanced_rules import AdvancedRules
+from app.advanced_ui import RulesJob, RulesPanel
 from app.application import APP_NAME, configure_application
 from app.config import PasswordConfig, PasswordMode
 from app.generator import generate_password as generate_password_from_config
@@ -141,11 +144,15 @@ class MainWindow(QMainWindow):
         self.presets = PresetStore(self.preferences.store)
         self._applying_preset = False
         self._selected_preset = ""
+        self._revision = 0
+        self._jobs = []
+        self._rules_error_code = None
+        self.working = False
         self._settings_dialog = None
         self._icon_directory = QTemporaryDir()
         self.custom_wordlist_path = self.preferences.values["wordlist"] or None
         self.setWindowTitle(APP_NAME)
-        self.resize(760, 560)
+        self.resize(760, 600)
         self.setMinimumWidth(560)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -229,6 +236,9 @@ class MainWindow(QMainWindow):
         self.manager_special_checkbox = self.option(options, "manager_special")
         manager.addLayout(options)
         self.exclude_similar_checkbox = self.option(manager, "exclude_similar")
+        self.rules_panel = RulesPanel(self.preferences.advanced)
+        self.rules_panel.changed.connect(self.rules_changed)
+        manager.addWidget(self.rules_panel)
         layout.addWidget(self.manager_settings)
         self.human_settings = QWidget()
         human = QVBoxLayout(self.human_settings)
@@ -283,6 +293,10 @@ class MainWindow(QMainWindow):
         self.generate_button.setObjectName("generate")
         self.generate_button.setMinimumHeight(48)
         self.generate_button.clicked.connect(self.generate_password)
+        self.rules_error = QLabel()
+        self.rules_error.setWordWrap(True)
+        self.rules_error.hide()
+        layout.addWidget(self.rules_error)
         layout.addWidget(self.generate_button)
         self.status = QLabel()
         self.status.setWordWrap(True)
@@ -303,6 +317,8 @@ class MainWindow(QMainWindow):
                 QTimer.singleShot(0, lambda: self.notify(self.t("wordlist_missing")))
 
         self.update_result_view()
+        if self.preferences.rules_invalid:
+            QTimer.singleShot(0, lambda: self.show_rules_error("settings_read"))
         if self.presets.invalid:
             QTimer.singleShot(0, lambda: self.notify(self.t("preset_invalid")))
         # Any manual generator edit resets the selection; saving remains explicit.
@@ -321,6 +337,12 @@ class MainWindow(QMainWindow):
         self.separator_combo.currentIndexChanged.connect(self.mark_custom)
 
     def mark_custom(self, *_):
+        self._revision += 1
+        for job in self._jobs:
+            job.cancelled.set()
+        if hasattr(self, "rules_error"):
+            self.rules_error.hide()
+            self._rules_error_code = None
         if not self._applying_preset:
             self._selected_preset = ""
             self.preset_combo.setCurrentIndex(0)
@@ -339,6 +361,12 @@ class MainWindow(QMainWindow):
         )
 
     def current_config(self):
+        rules = self.rules_panel.rules()
+        if not rules.enabled:
+            try:
+                rules.validate_structure()
+            except ValueError:
+                rules = AdvancedRules()
         human = self.tabs.currentIndex() == 1
         return PasswordConfig(
             mode=self.tabs.currentData(),
@@ -355,6 +383,7 @@ class MainWindow(QMainWindow):
             separator=self.separator_combo.currentData(),
             wordlist_path=self.custom_wordlist_path if human else None,
             exclude_similar=self.exclude_similar_checkbox.isChecked(),
+            advanced=rules,
         )
 
     def select_preset(self, index):
@@ -363,7 +392,7 @@ class MainWindow(QMainWindow):
         if preset:
             self.apply_preset(preset)
 
-    def apply_preset(self, preset):
+    def apply_preset(self, preset, checked=False):
         try:
             data = validate_parameters(preset.config)
         except ValueError:
@@ -377,9 +406,25 @@ class MainWindow(QMainWindow):
                 self.notify(self.t(error.code))
                 self.refresh_presets()
                 return False
+        if data["mode"] == "manager" and data["advanced"]["enabled"] and not checked:
+            config = PasswordConfig(
+                length=data["length"],
+                uppercase=data["uppercase"],
+                lowercase=data["lowercase"],
+                numbers=data["numbers"],
+                special=data["special"],
+                exclude_similar=data["exclude_similar"],
+                advanced=AdvancedRules.from_data(data["advanced"]),
+            )
+            self.start_rules_job(
+                config, lambda *_: self.apply_preset(preset, checked=True)
+            )
+            return None
         self._applying_preset = True
         try:
             if data["mode"] == "manager":
+                self.rules_panel.restore(AdvancedRules.from_data(data["advanced"]))
+                self.preferences.set_advanced(self.rules_panel.rules())
                 self.tabs.setCurrentIndex(0)
                 self.length_spin.setValue(data["length"])
                 for key, widget in [
@@ -415,8 +460,18 @@ class MainWindow(QMainWindow):
             self._applying_preset = False
         return True
 
-    def save_preset(self, name):
-        preset = self.presets.save(name, self.current_config())
+    def save_preset(self, name, checked=False, config=None):
+        config = config or self.current_config()
+        if (
+            config.mode == PasswordMode.MANAGER
+            and config.advanced.enabled
+            and not checked
+        ):
+            self.start_rules_job(
+                config, lambda *_: self.save_preset(name, checked=True, config=config)
+            )
+            return None
+        preset = self.presets.save(name, config)
         self.refresh_presets(preset.id)
         return preset
 
@@ -515,6 +570,9 @@ class MainWindow(QMainWindow):
         self.save_preset_action.setText(t("preset_save"))
         self.delete_preset_action.setText(t("preset_delete"))
         self.refresh_presets()
+        self.rules_panel.retranslate(t)
+        if self._rules_error_code:
+            self.show_rules_error(self._rules_error_code)
         self.generate_button.setText(t("generate"))
         for button, key in [
             (self.copy_button, "copy"),
@@ -597,13 +655,13 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(f"""
             QWidget {{ color: {c["text"]}; font-size: 14px; }}
             QMainWindow, QDialog, QScrollArea, QScrollArea > QWidget > QWidget {{ background: {c["background"]}; }}
-            QToolButton, QComboBox, QSpinBox {{ background: {c["surface"]}; border: 1px solid {c["border"]}; border-radius: 6px; padding: 8px; }}
+            QToolButton, QComboBox, QSpinBox, QLineEdit {{ background: {c["surface"]}; border: 1px solid {c["border"]}; border-radius: 6px; padding: 8px; }}
             QComboBox {{ padding-right: 36px; }}
             QComboBox::drop-down {{ subcontrol-origin: border; subcontrol-position: top right; width: 30px; border: none; background: transparent; }}
             QComboBox::down-arrow {{ image: url({icon_paths["down"]}); width: 16px; height: 16px; }}
             QComboBox:hover {{ border-color: {c["accent"]}; }}
             QToolButton {{ min-width: 24px; min-height: 24px; }}
-            QToolButton:disabled {{ color: {c["muted"]}; }}
+            QToolButton:disabled, QSpinBox:disabled, QComboBox:disabled, QLineEdit:disabled, QCheckBox:disabled {{ color: {c["muted"]}; }}
             QFrame#result {{ background: {c["surface"]}; border: 1px solid {c["border"]}; border-radius: 8px; }}
             QTextEdit#password {{ background: transparent; border: none; padding: 6px 0; }}
             QTabBar::tab {{ padding: 12px 22px; border-bottom: 1px solid {c["border"]}; }}
@@ -697,8 +755,90 @@ class MainWindow(QMainWindow):
             QApplication.clipboard().setText(self.password_field.text())
             self.notify(self.t("copied"))
 
+    def show_rules_error(self, code):
+        self._rules_error_code = code
+        self.rules_error.setText(self.t(code))
+        self.rules_error.setAccessibleName(self.t(code))
+        self.rules_error.show()
+
+    def rules_changed(self):
+        self.mark_custom()
+        rules = self.rules_panel.rules()
+        try:
+            # Invalid in-progress text is never written over the last valid draft.
+            if not rules.enabled:
+                try:
+                    rules.validate_structure()
+                except ValueError:
+                    rules = replace(self.preferences.advanced, enabled=False)
+            self.preferences.set_advanced(rules)
+            if rules.enabled:
+                self.current_config().validate()
+        except ValueError as error:
+            self.show_rules_error(getattr(error, "code", str(error)))
+
+    def start_rules_job(self, config, callback, generate=False):
+        if self.working:
+            return
+        request = self._revision
+        self.working = True
+        self.generate_button.setEnabled(False)
+        self.save_preset_action.setEnabled(False)
+        self.preset_combo.setEnabled(False)
+        self.delete_preset_action.setEnabled(False)
+        job = RulesJob(config, generate, self)
+        self._jobs.append(job)
+
+        def complete(result, error, single):
+            if request != self._revision:
+                return
+            if error:
+                self.show_rules_error(error)
+                self.refresh_presets()
+            else:
+                self.rules_error.hide()
+                self._rules_error_code = None
+                try:
+                    callback(result, single)
+                except ValueError as failure:
+                    self.show_rules_error(getattr(failure, "code", str(failure)))
+
+        def finish():
+            self._jobs.remove(job)
+            self.working = False
+            self.generate_button.setEnabled(True)
+            self.save_preset_action.setEnabled(True)
+            self.preset_combo.setEnabled(True)
+            self.refresh_presets()
+            job.deleteLater()
+
+        job.completed.connect(complete)
+        job.finished.connect(finish)
+        job.start()
+
+    def accept_advanced_result(self, result, single):
+        self.password_field.setText(result)
+        self.password_field.setCursorPosition(0)
+        if self.preferences.values["auto_copy"]:
+            self.copy_password()
+        if single:
+            self.show_rules_error("single_result")
+
+    def closeEvent(self, event):
+        self._revision += 1
+        for job in self._jobs:
+            job.cancelled.set()
+        for job in self._jobs:
+            job.wait()
+        super().closeEvent(event)
+
     def generate_password(self):
+        if self.working:
+            return
         config = self.current_config()
+        if config.mode == PasswordMode.MANAGER and config.advanced.enabled:
+            self.start_rules_job(config, self.accept_advanced_result, generate=True)
+            return
         try:
             password = generate_password_from_config(config)
         except (WordlistError, ValueError) as error:

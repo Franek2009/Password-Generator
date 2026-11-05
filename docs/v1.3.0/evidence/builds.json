@@ -1,0 +1,48 @@
+{
+  "date": "2026-11-05",
+  "base_commit": "11aed57e3e1c038415f2fe5bc28aecc9d62490b5",
+  "metadata_version": "development",
+  "published": false,
+  "android": {
+    "passed": true,
+    "tasks": [
+      "testDebugUnitTest",
+      "assembleDebug",
+      "assembleDebugAndroidTest",
+      "lintDebug"
+    ],
+    "command": "./android/gradlew -p android testDebugUnitTest assembleDebug assembleDebugAndroidTest lintDebug --no-daemon --max-workers=2 --console=plain -Pkotlin.compiler.execution.strategy=in-process -Dorg.gradle.jvmargs=-Xmx1024m",
+    "build_result": "BUILD SUCCESSFUL in 1m 27s; final additional schema unit tests: BUILD SUCCESSFUL in 34s",
+    "jdk": "21",
+    "jvm_target": "17",
+    "min_sdk": 26,
+    "compile_and_target_sdk": 35
+  },
+  "linux": {
+    "passed": true,
+    "python": "3.14.8",
+    "pyinstaller": "6.22.2",
+    "command": "python -m PyInstaller --noconfirm --clean --workpath build/v130-desktop-build --distpath build/v130-desktop-dist PasswordGenerator.spec",
+    "scope": "Local development build on Linux; existing provenance/release workflow was not executed or changed."
+  },
+  "windows": {
+    "executed": false
+  },
+  "artifacts": [
+    {
+      "path": "android/app/build/outputs/apk/debug/app-debug.apk",
+      "bytes": 9747244,
+      "sha256": "b84e3cfcb4bb2a79a7be152af673f540b76676d7a09c3df2c85dca0eb87f4dd4"
+    },
+    {
+      "path": "android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
+      "bytes": 1103997,
+      "sha256": "7e121f74e87824ceb342a0dd65ec2af6573d19f2054a0231d05298742203fec5"
+    },
+    {
+      "path": "build/v130-desktop-dist/PasswordGenerator/PasswordGenerator",
+      "bytes": 1973856,
+      "sha256": "ccdf18c5f0be8b7c9a612737df9081d484db1b5252c7c01bf34ba62b6d7d17b3"
+    }
+  ]
+}

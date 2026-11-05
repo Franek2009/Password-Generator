@@ -1,0 +1,5 @@
+{
+  "passed": true,
+  "observed_seconds": 4,
+  "scope": "Packaged application startup only, offscreen; no packaged GUI interaction automated."
+}

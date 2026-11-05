@@ -6,6 +6,9 @@ import unicodedata
 from dataclasses import dataclass
 from uuid import uuid4
 
+from PySide6.QtCore import QSettings
+
+from app.advanced_rules import AdvancedRules
 from app.config import SUPPORTED_SEPARATORS, PasswordConfig, PasswordMode
 
 CUSTOM_ID = re.compile(r"custom-[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}")
@@ -15,7 +18,7 @@ RESERVED_NAMES = {"STANDARD", "MOCNE", "STRONG", "FRAZA", "PHRASE"}
 
 def preset_name(value):
     if not isinstance(value, str):
-        raise ValueError("preset_invalid")
+        raise ValueError("preset_invalid")  # noqa: TRY004 - stable validation API
     name = unicodedata.normalize("NFKC", value).strip()
     if not 1 <= len(name) <= 64 or any(
         unicodedata.category(c).startswith("C") for c in name
@@ -35,6 +38,7 @@ def parameters(config):
             "numbers": config.numbers,
             "special": config.special,
             "exclude_similar": config.exclude_similar,
+            "advanced": config.advanced.to_data(),
         }
     return {
         "mode": "human",
@@ -46,9 +50,11 @@ def parameters(config):
     }
 
 
-def validate_parameters(data):
+def validate_parameters(data, version=2):
+    if type(version) is not int or version not in (1, 2):
+        raise ValueError("preset_version")
     if not isinstance(data, dict):
-        raise ValueError("preset_invalid")
+        raise ValueError("preset_invalid")  # noqa: TRY004 - stable validation API
     mode = data.get("mode")
     boolean_keys = ["numbers", "special"]
     if mode == "manager":
@@ -61,6 +67,8 @@ def validate_parameters(data):
             "special",
             "exclude_similar",
         }
+        if version == 2:
+            expected.add("advanced")
         boolean_keys += ["uppercase", "lowercase", "exclude_similar"]
         if type(data.get("length")) is not int or not 8 <= data["length"] <= 64:
             raise ValueError("preset_invalid")
@@ -85,7 +93,24 @@ def validate_parameters(data):
         data[k] for k in ["uppercase", "lowercase", "numbers", "special"]
     ):
         raise ValueError("preset_invalid")
-    return dict(data)
+    result = dict(data)
+    if mode == "manager":
+        rules = (
+            AdvancedRules.from_data(data["advanced"])
+            if version == 2
+            else AdvancedRules()
+        )
+        result["advanced"] = rules.to_data()
+        PasswordConfig(
+            length=data["length"],
+            uppercase=data["uppercase"],
+            lowercase=data["lowercase"],
+            numbers=data["numbers"],
+            special=data["special"],
+            exclude_similar=data["exclude_similar"],
+            advanced=rules,
+        ).validate()
+    return result
 
 
 @dataclass(frozen=True)
@@ -120,8 +145,11 @@ class PresetStore:
         self.settings = settings
         self.custom = []
         self.invalid = False
-        raw = settings.value("presets", "")
-        if not raw:
+        self.write_blocked = False
+        self.key = "presets_v2"
+        version = 2 if settings.contains(self.key) else 1
+        raw = settings.value(self.key if version == 2 else "presets", "")
+        if not raw and version == 1:
             return
         try:
             root = json.loads(raw)
@@ -129,9 +157,14 @@ class PresetStore:
                 not isinstance(root, dict)
                 or set(root) != {"version", "presets"}
                 or type(root["version"]) is not int
-                or root["version"] != 1
+                or root["version"] != version
                 or not isinstance(root["presets"], list)
             ):
+                self.write_blocked = (
+                    isinstance(root, dict)
+                    and type(root.get("version")) is int
+                    and root["version"] not in (1, 2)
+                )
                 raise ValueError()
             names, ids = set(RESERVED_NAMES), {p.id for p in builtins()}
             for item in root["presets"]:
@@ -151,13 +184,13 @@ class PresetStore:
                         or name.upper() in names
                     ):
                         raise ValueError()
-                    config = validate_parameters(item["config"])
+                    config = validate_parameters(item["config"], version)
                     self.custom.append(Preset(identity, name, config))
                     names.add(name.upper())
                     ids.add(identity)
                 except (ValueError, TypeError, KeyError):
                     self.invalid = True
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, RecursionError):
             self.invalid = True
 
     @property
@@ -171,27 +204,34 @@ class PresetStore:
         preset = Preset(
             "custom-" + str(uuid4()), name, validate_parameters(parameters(config))
         )
-        self.custom.append(preset)
-        self._write()
+        proposed = self.custom + [preset]
+        self._write(proposed)
+        self.custom = proposed
         return preset
 
     def delete(self, identity):
         if identity not in {p.id for p in self.custom}:
             raise ValueError("preset_invalid")
-        self.custom = [p for p in self.custom if p.id != identity]
-        self._write()
+        proposed = [p for p in self.custom if p.id != identity]
+        self._write(proposed)
+        self.custom = proposed
 
-    def _write(self):
-        self.settings.setValue(
-            "presets",
-            json.dumps(
-                {
-                    "version": 1,
-                    "presets": [
-                        {"id": p.id, "name": p.name, "config": p.config}
-                        for p in self.custom
-                    ],
-                },
-                ensure_ascii=False,
-            ),
+    def _write(self, proposed):
+        if self.write_blocked:
+            raise ValueError("preset_version")
+        payload = json.dumps(
+            {
+                "version": 2,
+                "presets": [
+                    {"id": p.id, "name": p.name, "config": p.config} for p in proposed
+                ],
+            },
+            ensure_ascii=False,
         )
+        try:
+            self.settings.setValue(self.key, payload)
+            self.settings.sync()
+            if self.settings.status() != QSettings.NoError:
+                raise ValueError("settings_write")
+        except (OSError, RuntimeError) as error:
+            raise ValueError("settings_write") from error

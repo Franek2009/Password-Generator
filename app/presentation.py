@@ -4,6 +4,7 @@ import json
 
 from PySide6.QtCore import QLocale, QSettings
 
+from app.advanced_rules import AdvancedRules
 from app.resources import resource_path
 
 UI = json.loads(resource_path("data", "ui.json").read_text(encoding="utf-8"))
@@ -69,6 +70,23 @@ class Preferences:
             if key == "wordlist" and not isinstance(value, str):
                 value = ""
             self.values[key] = value
+        self.advanced = AdvancedRules()
+        self.rules_invalid = False
+        if self.store.contains("advanced_rules_v1"):
+            try:
+                self.advanced = AdvancedRules.from_data(
+                    json.loads(self.store.value("advanced_rules_v1"))
+                )
+            except (ValueError, TypeError, RecursionError):
+                self.rules_invalid = True
+
+    def set_advanced(self, rules):
+        data = rules.to_data()
+        self.store.setValue("advanced_rules_v1", json.dumps(data))
+        self.store.sync()
+        if self.store.status() != QSettings.NoError:
+            raise ValueError("settings_write")
+        self.advanced = AdvancedRules.from_data(data)
 
     def set(self, key, value):
         if key not in DEFAULTS:

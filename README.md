@@ -22,6 +22,39 @@ environment.
 * Standalone Linux and Windows builds
 * Native Android application in Kotlin and Jetpack Compose
 
+## In development: advanced generation
+
+The working tree adds an optional **Advanced rules** section on desktop and
+Android. These changes are intended for a future v1.3.0; the download links
+below still refer to the published release.
+
+* Set minimum counts of uppercase/lowercase letters, digits and symbols.
+  Zero makes a group optional in advanced mode.
+* Restrict the alphabet and exclude literal characters. Custom/forbidden
+  entries accept visible ASCII characters `!` through `~`, without spaces.
+  Repeated entries have no extra weight; case matters. The custom alphabet
+  intersects the enabled character groups, then forbidden/similar characters
+  are removed.
+* Restrict the first and last character by type and optionally limit identical
+  consecutive characters. Endpoints count toward the minima. A repetition limit
+  reduces the allowed results; it does not automatically increase security.
+* Advanced generation samples uniformly from all results satisfying the rules,
+  using exact integer counts and cryptographically secure randomness. Impossible
+  combinations show an error; rules allowing only one result show a warning.
+* Rules can be saved in presets. Existing presets are read lazily; the first
+  preset edit writes version 2 separately and preserves the original data.
+  Applying a preset validates feasibility without generating a password.
+
+Expanding the section does not enable advanced mode. With advanced mode off,
+random generation retains its previous behavior and character-group guarantee.
+Advanced rules do not affect passphrases. Computation runs outside the UI thread;
+changing the configuration cancels/discards pending results. Generated passwords
+are never written to settings or presets.
+
+[Algorithm and uniformity argument](docs/v1.3.0/algorithm.md),
+[migration details](docs/v1.3.0/presets.md), and
+[verification and new previews](docs/v1.3.0/README.md) describe the changes.
+
 ## v1.2.0
 
 This release adds the following features on desktop and Android:
