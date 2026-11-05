@@ -1,8 +1,10 @@
-# Implementation review — advanced generation
+# Final technical review — v1.3.0
 
-This is a developer review checklist with evidence, not an independent audit
-or certification. Release metadata, signing, licensing and the release workflow
-are unchanged. The owner must still obtain the intended independent audit.
+The final release review examined the advanced-generation implementation and
+its verification evidence. No blocking defect was identified; runtime code and
+public interfaces were left unchanged. Signing, licensing and the release
+workflow remain unchanged. The owner accepted Windows/Android manual results
+and emulator performance as the release criteria.
 
 * The classic generator and passphrase generator retain their original algorithms.
   Advanced generation uses `secrets.randbelow` / `SecureRandom`, with exact integer
@@ -30,5 +32,29 @@ are unchanged. The owner must still obtain the intended independent audit.
   examples with no practical password value; benchmark logs contain public rule
   parameters, time/memory/state statistics only.
 
-Remaining validation includes physical-phone performance and native Windows
-execution. An emulator is useful evidence, but is not the reference phone.
+## Final verification record
+
+* Reviewed Python and Kotlin alphabet compilation, exact completion counting,
+  unranking and integer range sampling against the mathematical argument and
+  independent exhaustive/rank fixtures. Signed intermediate count arithmetic
+  stays exact; optimizations preserve the endpoint/run constraints.
+* Reviewed strict preset schemas, lazy v1 migration, no fallback from corrupt v2,
+  checked writes, unavailable custom dictionaries and URI errors.
+* Reviewed configuration revisions, cancellation/cleanup paths and publication
+  guards: switching modes cannot restore an old pending result or auto-copy it.
+* Reviewed raw-copy paths and serialization whitelists; no password result,
+  fragment, prefix, random rank or completion count is persisted or logged.
+* Re-ran the full Python suite for release preparation: [268 passed](evidence/release-python-tests.txt). Existing CI
+  covers 22 JVM tests, lint/builds, instrumented UI on API 26/35 and packaged
+  Linux startup. See the [verification report](README.md) for evidence links.
+* The owner confirmed the latest application builds on Windows and physical
+  Android, including the readability fix. No runtime change was made during
+  this review, so those application binaries remain applicable.
+* Physical-phone timing/memory measurements are deferred by the owner. The
+  performance evidence is explicitly from the emulator. Manual screen-reader
+  sessions and Android storage-failure injection remain unmeasured.
+
+The review uses the existing rank-bijection argument and executable oracles;
+it does not infer uniformity from statistical tests alone. The classic generator
+retains its previous composition distribution. No additional features, schema
+migration, dependency upgrades or cryptographic replacements were introduced.

@@ -160,6 +160,6 @@ files listed above, including proofs, tests, fixtures, evidence and screenshots.
    snapshot. Keep the earlier v1.2 references and release mechanisms unchanged.
 
 This is a logical review split, not pre-staged commits. Re-run the relevant
-checks after assembling each commit. Physical-phone performance, native Windows,
-manual accessibility and the independent audit remain outstanding as described
-in the [verification report](README.md#not-verified--remaining-acceptance).
+checks after assembling each commit. This is the historical implementation snapshot. Current release acceptance and
+remaining measurement limits are recorded in the
+[verification report](README.md#release-acceptance).

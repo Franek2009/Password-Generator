@@ -10,81 +10,41 @@ environment.
 
 ## Features
 
-* Random password mode for highly random passwords
-* Passphrase mode for readable word-based passwords
-* Cryptographically secure randomness using Python's `secrets` module
-* Configurable length, character sets, word count and separators
-* Built-in Polish word list
-* Custom `.txt` word lists
-* Optional numbers and special characters
-* Copying generated passwords to the clipboard
-* Input validation and clear error messages
-* Standalone Linux and Windows builds
-* Native Android application in Kotlin and Jetpack Compose
+* Random passwords and readable passphrases
+* Cryptographic randomness: Python `secrets` and Android `SecureRandom`
+* Configurable length, character groups, word count and separators
+* Built-in Polish word list and custom UTF-8 word lists
+* Built-in presets and named custom presets, saved between sessions
+* Optional exclusion of similar characters (`0 O o 1 I l`)
+* Larger monospace transcription view with natural character spacing
+* Complete-result copying, wrapping and scrolling for long results
+* Light/dark themes and Polish/English interfaces
 
-## In development: advanced generation
+Generated passwords remain in memory; they are not saved in settings or presets.
+Automatic copying is off by default. Switching modes clears the result without
+generating another password. An unavailable custom word list produces an error
+instead of silently selecting another dictionary.
 
-The v1.3.0 test builds include an optional **Advanced rules** section on desktop
-and Android. [Download a test build](#test-builds) to try these features.
-These are development snapshots, not a published v1.3.0 release.
+## v1.3.0 — Advanced generation
 
-* Set minimum counts of uppercase/lowercase letters, digits and symbols.
-  Zero makes a group optional in advanced mode.
-* Restrict the alphabet and exclude literal characters. Custom/forbidden
-  entries accept visible ASCII characters `!` through `~`, without spaces.
-  Repeated entries have no extra weight; case matters. The custom alphabet
-  intersects the enabled character groups, then forbidden/similar characters
-  are removed.
-* Restrict the first and last character by type and optionally limit identical
-  consecutive characters. Endpoints count toward the minima. A repetition limit
-  reduces the allowed results; it does not automatically increase security.
-* Advanced generation samples uniformly from all results satisfying the rules,
-  using exact integer counts and cryptographically secure randomness. Impossible
-  combinations show an error; rules allowing only one result show a warning.
-* Rules can be saved in presets. Existing presets are read lazily; the first
-  preset edit writes version 2 separately and preserves the original data.
-  Applying a preset validates feasibility without generating a password.
+The optional **Advanced rules** section adds minimum counts for each character
+group, a custom alphabet, forbidden characters, first/last character types and
+a limit on identical consecutive characters. A minimum of zero makes a group
+optional in advanced mode. Expand the section and enable
+**Use advanced rules** to apply them. With advanced mode off, the classic
+random-password generator retains its existing behavior.
 
-Expanding the section does not enable advanced mode. With advanced mode off,
-random generation retains its previous behavior and character-group guarantee.
-Advanced rules do not affect passphrases. Computation runs outside the UI thread;
-changing the configuration cancels/discards pending results. Generated passwords
-are never written to settings or presets.
+Custom and forbidden alphabets use visible ASCII (`!` through `~`, without
+spaces). Advanced generation samples uniformly from all valid results using
+exact integer counts. Impossible rules show an error; rules allowing a single
+result show a warning. Passphrases are unaffected.
 
-[Algorithm and uniformity argument](docs/v1.3.0/algorithm.md),
-[migration details](docs/v1.3.0/presets.md), and
-[verification and new previews](docs/v1.3.0/README.md) describe the changes.
+New rules can be saved in presets. Presets from v1.2.0 remain compatible.
+Transcription view now enlarges the original text without the previous
+four-character grouping; copying always preserves the exact original.
 
-## Existing features from v1.2.0
-
-The advanced-generation update retains these desktop and Android features:
-
-* **Presets:** Standard (16 characters), Strong (24 characters), and Phrase
-  (5 words, `-`, built-in Polish list, no added numbers or symbols). Select a
-  preset below the result. Save or delete named custom presets through the
-  desktop overflow menu or Android preset menu. Built-ins cannot be deleted.
-* Presets restore only the active mode's generator parameters. Names must be
-  unique (including built-in names), with 1–64 characters. Theme, language,
-  automatic copying and transcription view remain independent preferences.
-* **Exclude similar characters:** optionally removes `0 O o 1 I l` in random
-  mode while preserving every selected character set. Off by default; saved
-  with preferences and random-mode presets. Passphrases are unaffected.
-* **Transcription view:** larger monospace text with the original character
-  spacing. The v1.3.0 preview removes the previous four-character grouping to
-  make passwords easier to read. Passphrases retain their words and separators.
-  Copying retains the entire original result. Switching this view does not
-  generate or copy a new password.
-* Long results wrap and scroll. Switching generator modes or applying a preset
-  clears the result without generating another password.
-
-Presets contain configuration only. Results are never saved in settings or
-presets. Invalid preset records are ignored with a warning. An unavailable
-custom word list, including a lost Android document permission, causes an
-error; generation and preset application do not silently substitute a dictionary.
-Choose the built-in list or select the custom file again to recover.
-
-[Screenshots](docs/v1.2.0-preview/README.md) and the
-[release audit](docs/v1.2.0-audit.md) document the implementation and verification.
+[Generation rules and algorithm](docs/v1.3.0/algorithm.md) ·
+[Preset compatibility](docs/v1.3.0/presets.md)
 
 ## Android
 
@@ -93,49 +53,10 @@ both generation modes, the built-in Polish word list, custom text word lists
 and clipboard copying. Open that directory in Android Studio to build and run
 the application. See [`android/README.md`](android/README.md) for requirements.
 
-## Test builds
+## Download
 
-**For testing the new advanced rules, download one of these builds.** All three
-packages contain application code from commit
-[`2e723db`](https://github.com/Franek2009/Password-Generator/commit/2e723db7dd0e4365410d075efd043fd5f7a8fc9f)
-on `feature/v1.3.0-advanced-generation`, including the transcription readability
-fix (larger text with natural spacing). Later documentation-only commits do not
-change these binaries.
-
-| Platform | Test download | Artifact name |
-| --- | --- | --- |
-| Android 8.0+ | [Download debug APK artifact](https://github.com/Franek2009/Password-Generator/actions/runs/42089173400/artifacts/13442829913) | `PasswordGenerator-android-debug` |
-| Linux x86-64 | [Download Linux artifact](https://github.com/Franek2009/Password-Generator/actions/runs/42089184974/artifacts/13443528566) | `PasswordGenerator-linux-x86_64.tar.gz` |
-| Windows x86-64 | [Download Windows artifact](https://github.com/Franek2009/Password-Generator/actions/runs/42089184974/artifacts/13443753028) | `PasswordGenerator-windows-x86_64.zip` |
-
-1. Sign in to GitHub to download Actions artifacts. If a direct download does
-   not start, open the [desktop build](https://github.com/Franek2009/Password-Generator/actions/runs/42089184974)
-   or [APK build](https://github.com/Franek2009/Password-Generator/actions/runs/42089173400)
-   and select the artifact listed above in **Artifacts** at the bottom.
-2. Extract the outer artifact ZIP. On desktop, also extract the enclosed
-   platform archive and run the application from its complete extracted folder.
-   On Android, the artifact contains `app-debug.apk`.
-3. Open **Random password → Advanced rules**, expand the section and enable
-   **Use advanced rules**. Expanding the section alone leaves the rules disabled.
-
-The APK uses a debug signing key and cannot update the stable release signed
-with the distribution key. Debug APKs from different CI runs can also use
-different signing keys. Development builds may display a development version
-rather than `1.3.0`; the source commit above identifies this test snapshot.
-Artifacts have limited retention; if expired, rerun the existing build workflows
-for the desired branch instead of downloading the stable release by mistake.
-
-The [Windows/Linux package build](https://github.com/Franek2009/Password-Generator/actions/runs/42089184974),
-[APK build](https://github.com/Franek2009/Password-Generator/actions/runs/42089173400),
-[Python tests](https://github.com/Franek2009/Password-Generator/actions/runs/42089173408)
-and [Android UI tests on API 26 and 35](https://github.com/Franek2009/Password-Generator/actions/runs/42089173437)
-all passed for this application revision. Building Windows successfully does not
-replace manual testing on Windows or a physical Android phone.
-
-### Latest stable release
-
-The links below download published releases. For testing advanced generation,
-use the CI artifacts above. Stable-release downloads need no GitHub login.
+Download the latest published package for your platform; no GitHub login is
+needed. Standalone desktop packages run without installing Python.
 
 | Platform | Download |
 | --- | --- |
@@ -143,30 +64,27 @@ use the CI artifacts above. Stable-release downloads need no GitHub login.
 | Linux x86-64 | [Linux archive](https://github.com/Franek2009/Password-Generator/releases/latest/download/PasswordGenerator-linux-x86_64.tar.gz) |
 | Windows x86-64 | [Windows archive](https://github.com/Franek2009/Password-Generator/releases/latest/download/PasswordGenerator-windows-x86_64.zip) |
 
-[Latest release notes and all files](https://github.com/Franek2009/Password-Generator/releases/latest). Android installs as an
-update using the existing signing key. Compare the version in Android app info
-with the version shown on the release page.
+[Release notes and all files](https://github.com/Franek2009/Password-Generator/releases/latest).
+The published Android APK uses the existing distribution signing key.
 
 [Third-party dependency sources](https://github.com/Franek2009/Password-Generator/releases/latest/download/PasswordGenerator-third-party-sources.tar.gz)
-are provided for license compliance; they are not required to run the app.
+are provided for license compliance and are not required to run the app.
 
-## Screenshots — advanced rules preview
+[Development builds and verification details](docs/v1.3.0/README.md).
 
-These captures show the running v1.3.0 development interface in light and dark
-mode. Desktop captures use the native Qt UI; Android captures come from an
-API-35 emulator. The deliberately forced public example `a1a1a1a1` illustrates
-the single-result warning and must not be used as a password.
+## Screenshots
 
-| View | Dark theme | Light theme |
+The running desktop and Android interfaces in both themes. Example passwords
+are public demonstration strings. Android captures use an API-35 emulator.
+
+| Platform | Dark theme | Light theme |
 | --- | --- | --- |
-| Desktop advanced rules | ![Desktop advanced rules, dark theme](docs/v1.3.0/preview/desktop-dark-rules.png) | ![Desktop advanced rules, light theme](docs/v1.3.0/preview/desktop-light-rules.png) |
-| Android result | ![Android preview result, dark theme](docs/v1.3.0/preview/android-dark-result.png) | ![Android preview result, light theme](docs/v1.3.0/preview/android-light-result.png) |
-| Android character and repetition rules | ![Android advanced rules, dark theme](docs/v1.3.0/preview/android-dark-endpoints.png) | ![Android advanced rules, light theme](docs/v1.3.0/preview/android-light-endpoints.png) |
+| Desktop | ![Desktop, dark theme](docs/v1.3.0/preview/desktop-dark-narrow.png) | ![Desktop, light theme](docs/v1.3.0/preview/desktop-light-narrow.png) |
+| Android | ![Android, dark theme](docs/v1.3.0/preview/android-dark-result.png) | ![Android, light theme](docs/v1.3.0/preview/android-light-result.png) |
 
-[Full preview gallery and verification notes](docs/v1.3.0/README.md).
-Earlier references remain available in the
-[v1.2.0 gallery](docs/v1.2.0-preview/README.md) and the
-[v1.1.0 gallery](docs/ui-preview/README.md).
+[Full gallery](docs/v1.3.0/README.md#verified-previews) ·
+[Archived v1.2.0 gallery](docs/v1.2.0-preview/README.md) ·
+[Archived v1.1.0 gallery](docs/ui-preview/README.md)
 
 ## Running the Standalone Application
 
@@ -211,9 +129,9 @@ character sets can be enabled independently:
 The password length can be configured from **8 to 64 characters**. At least
 one character set must be enabled.
 
-When multiple character sets are selected, the generator guarantees that at
-least one character from every selected set is present, provided the requested
-length is sufficient.
+With **Advanced rules off**, selecting multiple character sets guarantees at
+least one character from every selected set, provided the requested length is
+sufficient. Advanced mode follows the explicit minima instead.
 
 ### Passphrase Mode
 
