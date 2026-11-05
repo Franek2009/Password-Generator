@@ -24,9 +24,9 @@ environment.
 
 ## In development: advanced generation
 
-The working tree adds an optional **Advanced rules** section on desktop and
-Android. These changes are intended for a future v1.3.0; the download links
-below still refer to the published release.
+The v1.3.0 test builds include an optional **Advanced rules** section on desktop
+and Android. [Download a test build](#test-builds) to try these features.
+These are development snapshots, not a published v1.3.0 release.
 
 * Set minimum counts of uppercase/lowercase letters, digits and symbols.
   Zero makes a group optional in advanced mode.
@@ -55,9 +55,9 @@ are never written to settings or presets.
 [migration details](docs/v1.3.0/presets.md), and
 [verification and new previews](docs/v1.3.0/README.md) describe the changes.
 
-## v1.2.0
+## Existing features from v1.2.0
 
-This release adds the following features on desktop and Android:
+The advanced-generation update retains these desktop and Android features:
 
 * **Presets:** Standard (16 characters), Strong (24 characters), and Phrase
   (5 words, `-`, built-in Polish list, no added numbers or symbols). Select a
@@ -92,10 +92,47 @@ both generation modes, the built-in Polish word list, custom text word lists
 and clipboard copying. Open that directory in Android Studio to build and run
 the application. See [`android/README.md`](android/README.md) for requirements.
 
-## Download
+## Test builds
 
-**The latest release includes the unified desktop and Android interface shown below.**
-Download the package for your operating system; no GitHub login is needed.
+**For testing the new advanced rules, download one of these builds.** All three
+packages contain application code from commit
+[`ea055d7`](https://github.com/Franek2009/Password-Generator/commit/ea055d70cc084bd6871391af5259c4da47a70624)
+on `feature/v1.3.0-advanced-generation`. Later documentation-only commits do not
+change these binaries.
+
+| Platform | Test download | Artifact name |
+| --- | --- | --- |
+| Android 8.0+ | [Download debug APK artifact](https://github.com/Franek2009/Password-Generator/actions/runs/42085993094/artifacts/13442448155) | `PasswordGenerator-android-debug` |
+| Linux x86-64 | [Download Linux artifact](https://github.com/Franek2009/Password-Generator/actions/runs/42085991013/artifacts/13443521678) | `PasswordGenerator-linux-x86_64.tar.gz` |
+| Windows x86-64 | [Download Windows artifact](https://github.com/Franek2009/Password-Generator/actions/runs/42085991013/artifacts/13442712119) | `PasswordGenerator-windows-x86_64.zip` |
+
+1. Sign in to GitHub to download Actions artifacts. If a direct download does
+   not start, open the [desktop build](https://github.com/Franek2009/Password-Generator/actions/runs/42085991013)
+   or [APK build](https://github.com/Franek2009/Password-Generator/actions/runs/42085993094)
+   and select the artifact listed above in **Artifacts** at the bottom.
+2. Extract the outer artifact ZIP. On desktop, also extract the enclosed
+   platform archive and run the application from its complete extracted folder.
+   On Android, the artifact contains `app-debug.apk`.
+3. Open **Random password → Advanced rules**, expand the section and enable
+   **Use advanced rules**. Expanding the section alone leaves the rules disabled.
+
+The APK uses a debug signing key and cannot update the stable release signed
+with the distribution key. Development builds may display a development version
+rather than `1.3.0`; the source commit above identifies this test snapshot.
+Artifacts have limited retention; if expired, rerun the existing build workflows
+for the desired branch instead of downloading the stable release by mistake.
+
+The [Windows/Linux package build](https://github.com/Franek2009/Password-Generator/actions/runs/42085991013),
+[APK build](https://github.com/Franek2009/Password-Generator/actions/runs/42085993094),
+[Python tests](https://github.com/Franek2009/Password-Generator/actions/runs/42085993371)
+and [Android UI tests on API 26 and 35](https://github.com/Franek2009/Password-Generator/actions/runs/42085993657)
+all passed for this application revision. Building Windows successfully does not
+replace manual testing on Windows or a physical Android phone.
+
+### Latest stable release
+
+The links below download published releases. For testing advanced generation,
+use the CI artifacts above. Stable-release downloads need no GitHub login.
 
 | Platform | Download |
 | --- | --- |
@@ -110,19 +147,23 @@ with the version shown on the release page.
 [Third-party dependency sources](https://github.com/Franek2009/Password-Generator/releases/latest/download/PasswordGenerator-third-party-sources.tar.gz)
 are provided for license compliance; they are not required to run the app.
 
-## Screenshots — current interface
+## Screenshots — advanced rules preview
 
-These captures show the v1.2.0 interface. Android captures come from a physical
-Samsung phone in landscape orientation.
-Example passwords are public demonstration strings.
+These captures show the running v1.3.0 development interface in light and dark
+mode. Desktop captures use the native Qt UI; Android captures come from an
+API-35 emulator. The deliberately forced public example `a1a1a1a1` illustrates
+the single-result warning and must not be used as a password.
 
-| Platform | Dark theme | Light theme |
+| View | Dark theme | Light theme |
 | --- | --- | --- |
-| Desktop | ![Desktop v1.2.0, dark theme](docs/v1.2.0-preview/desktop-dark-random.png) | ![Desktop v1.2.0, light theme](docs/v1.2.0-preview/desktop-light-random.png) |
-| Android | ![Android v1.2.0, dark theme](docs/v1.2.0-preview/android-dark-random.png) | ![Android v1.2.0, light theme](docs/v1.2.0-preview/android-light-random.png) |
+| Desktop advanced rules | ![Desktop advanced rules, dark theme](docs/v1.3.0/preview/desktop-dark-rules.png) | ![Desktop advanced rules, light theme](docs/v1.3.0/preview/desktop-light-rules.png) |
+| Android result | ![Android preview result, dark theme](docs/v1.3.0/preview/android-dark-result.png) | ![Android preview result, light theme](docs/v1.3.0/preview/android-light-result.png) |
+| Android character and repetition rules | ![Android advanced rules, dark theme](docs/v1.3.0/preview/android-dark-endpoints.png) | ![Android advanced rules, light theme](docs/v1.3.0/preview/android-light-endpoints.png) |
 
-[Full desktop/Android gallery](docs/v1.2.0-preview/README.md).
-[Archived v1.1.0 reference gallery](docs/ui-preview/README.md).
+[Full preview gallery and verification notes](docs/v1.3.0/README.md).
+Earlier references remain available in the
+[v1.2.0 gallery](docs/v1.2.0-preview/README.md) and the
+[v1.1.0 gallery](docs/ui-preview/README.md).
 
 ## Running the Standalone Application
 
@@ -483,4 +524,4 @@ Custom word lists remain selectable as UTF-8 text files. An unavailable saved
 list causes an error and requires an explicit list selection; the application does not silently choose another dictionary.
 Android's clipboard marks copied passwords as sensitive on Android 13+.
 
-See the [review gallery and validation notes](https://github.com/Franek2009/Password-Generator/blob/master/docs/v1.2.0-preview/README.md).
+See the [advanced-generation gallery and validation notes](docs/v1.3.0/README.md).
