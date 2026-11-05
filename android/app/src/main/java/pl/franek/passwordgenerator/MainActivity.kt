@@ -195,12 +195,11 @@ private fun GeneratorScreen(ui: SharedUi, state: UiState, model: GeneratorViewMo
                 OutlinedTextField(value = state.password, onValueChange = {}, readOnly = true, singleLine = false, maxLines = 6,
                     visualTransformation = when {
                         human -> PhraseTransformation
-                        state.transcription -> TranscriptionTransformation
                         else -> VisualTransformation.None
                     },
                     placeholder = { Text(t("placeholder"), fontSize = 14.sp) },
                     textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace, fontSize = if (state.transcription) 26.sp else 20.sp,
-                        lineHeight = if (state.transcription) 34.sp else 28.sp, lineBreak = LineBreak.Paragraph),
+                        lineHeight = if (state.transcription) 34.sp else 28.sp, letterSpacing = 0.sp, lineBreak = LineBreak.Paragraph),
                     modifier = Modifier.weight(1f).clearAndSetSemantics {
                         contentDescription = t("placeholder")
                         text = AnnotatedString(state.password)
@@ -243,21 +242,6 @@ private fun GeneratorScreen(ui: SharedUi, state: UiState, model: GeneratorViewMo
     Button(onClick = { focus.clearFocus(); model.generate() }, enabled = !model.working, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
         shape = RoundedCornerShape(7.dp), colors = ButtonDefaults.buttonColors(containerColor = button, contentColor = buttonText)) {
         Text(t(if(model.working) "working" else "generate"), fontSize = 17.sp, modifier = Modifier.padding(vertical = 4.dp))
-    }
-}
-
-/** Only display changes: TextField and clipboard retain the original value. */
-object TranscriptionTransformation : VisualTransformation {
-    override fun filter(text: AnnotatedString): TransformedText {
-        val size = text.length
-        val grouped = text.text.chunked(4).joinToString("  ")
-        val mapping = object : OffsetMapping {
-            override fun originalToTransformed(offset: Int): Int =
-                offset + (if (size == 0) 0 else minOf(offset / 4, (size - 1) / 4)) * 2
-            override fun transformedToOriginal(offset: Int): Int =
-                minOf(size, (offset / 6) * 4 + minOf(offset % 6, 4))
-        }
-        return TransformedText(AnnotatedString(grouped), mapping)
     }
 }
 

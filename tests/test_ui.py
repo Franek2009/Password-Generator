@@ -494,13 +494,19 @@ def test_transcription_keeps_original_for_every_copy_route(window, qtbot):
     window.password_field.selectAll()
     qtbot.keySequence(window.password_field, QKeySequence.Copy)
     assert QApplication.clipboard().text() == raw
-    # Typography adds gaps without changing the document or accessibility value.
-    cursor = QTextCursor(window.password_field.document())
-    cursor.setPosition(4)
-    assert cursor.charFormat().fontLetterSpacing() == 14
+    # Enlarging the result keeps identical spacing for every character.
+    for position in range(1, len(raw) + 1):
+        cursor = QTextCursor(window.password_field.document())
+        cursor.setPosition(position)
+        assert cursor.charFormat().fontLetterSpacing() == 0
+        assert cursor.charFormat().fontPointSize() == 24
+    assert window.password_field.toPlainText() == raw
     window.transcription_checkbox.setChecked(False)
     assert window.password_field.text() == raw
+    cursor = QTextCursor(window.password_field.document())
+    cursor.setPosition(4)
     assert cursor.charFormat().fontLetterSpacing() == 0
+    assert cursor.charFormat().fontPointSize() == 18
 
 
 def test_phrase_transcription_and_long_result_preserve_separators(window):

@@ -69,10 +69,11 @@ The advanced-generation update retains these desktop and Android features:
 * **Exclude similar characters:** optionally removes `0 O o 1 I l` in random
   mode while preserving every selected character set. Off by default; saved
   with preferences and random-mode presets. Passphrases are unaffected.
-* **Transcription view:** larger monospace text with visual groups of four in
-  random mode. Passphrases retain their words and separators. Copying retains
-  the entire original result, without visual spacing. Switching this view
-  does not generate or copy a new password.
+* **Transcription view:** larger monospace text with the original character
+  spacing. The v1.3.0 preview removes the previous four-character grouping to
+  make passwords easier to read. Passphrases retain their words and separators.
+  Copying retains the entire original result. Switching this view does not
+  generate or copy a new password.
 * Long results wrap and scroll. Switching generator modes or applying a preset
   clears the result without generating another password.
 

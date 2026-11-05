@@ -1,4 +1,4 @@
-"""Scrollable plain-text result; spacing is typography, never password data."""
+"""Scrollable plain-text result; transcription enlarges the original text."""
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import (
@@ -51,17 +51,10 @@ class ResultView(QTextEdit):
         cursor.select(QTextCursor.Document)
         font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
         font.setPointSize(24 if self.transcription else 18)
+        font.setLetterSpacing(QFont.AbsoluteSpacing, 0)
         normal = QTextCharFormat()
         normal.setFont(font)
         cursor.setCharFormat(normal)
-        if self.transcription and not self.human:
-            spaced = QTextCharFormat(normal)
-            spaced.setFontLetterSpacingType(QFont.AbsoluteSpacing)
-            spaced.setFontLetterSpacing(14)
-            for i in range(3, len(self.text()) - 1, 4):
-                cursor.setPosition(i)
-                cursor.setPosition(i + 1, QTextCursor.KeepAnchor)
-                cursor.setCharFormat(spaced)
         self.setCursorPosition(0)
 
     def copy(self):

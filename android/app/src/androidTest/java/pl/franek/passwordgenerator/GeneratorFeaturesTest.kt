@@ -157,17 +157,23 @@ class GeneratorFeaturesTest {
         assertEquals(spaces, PhraseTransformation.filter(AnnotatedString(spaces)).text.text)
     }
 
-    @Test fun transformationOffsetsAndOriginalAreConsistent() {
-        for (size in 0..65) {
-            val raw = "a".repeat(size)
-            val result = TranscriptionTransformation.filter(AnnotatedString(raw))
-            assertEquals(raw.chunked(4).joinToString("  "), result.text.text)
-            for (offset in 0..size) {
-                val mapped = result.offsetMapping.originalToTransformed(offset)
-                assertTrue(mapped in 0..result.text.length)
-                assertEquals(offset, result.offsetMapping.transformedToOriginal(mapped))
+    @Test fun transcriptionTogglePreservesDisplayedTextAndClipboard() {
+        reset()
+        for(raw in listOf("kR7!mP4#zQ9@", "aB2!".repeat(16), "word\u00a0with  spaces/next")) {
+            idle { model.update { it.copy(password=raw,transcription=false) } }
+            val result=rule.onNodeWithContentDescription("Your password will appear here")
+            result.performScrollTo().assertTextEquals(raw)
+            for(enabled in listOf(true,false,true)) {
+                rule.onNodeWithText("Transcription view").performScrollTo().performClick()
+                result.performScrollTo().assertTextEquals(raw)
+                idle {
+                    assertEquals(enabled,model.state.transcription)
+                    assertEquals(raw,model.state.password)
+                    model.copy()
+                    val clip=rule.activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    assertEquals(raw,clip.primaryClip!!.getItemAt(0).text.toString())
+                }
             }
-            for (offset in 0..result.text.length) assertTrue(result.offsetMapping.transformedToOriginal(offset) in 0..size)
         }
     }
 }

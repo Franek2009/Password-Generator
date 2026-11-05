@@ -12,7 +12,8 @@ first/last character types, identical-run limits, exact uniform advanced samplin
 localized validation and a collapsible native rules section. Rules are persisted
 separately and included in versioned random-mode presets with lazy v1 migration.
 CPU work is cancellable and never publishes a stale result after configuration
-changes. Transcription copies the original; passphrases and classic generation
+changes. Transcription enlarges the original text without artificial character
+gaps or four-character groups and copies the original; passphrases and classic generation
 retain their previous behavior. Desktop opens 40 px taller to keep the primary
 action visible with the added collapsed row; narrow viewports remain scrollable.
 
@@ -95,6 +96,23 @@ They are not mockups or physical-phone screenshots.
 | Android minima | [image](preview/android-light-rules.png) | [image](preview/android-dark-rules.png) |
 | Android alphabet | [image](preview/android-light-alphabet.png) | [image](preview/android-dark-alphabet.png) |
 | Android endpoints/run limit | [image](preview/android-light-endpoints.png) | [image](preview/android-dark-endpoints.png) |
+
+## Transcription readability follow-up
+
+After review, both platforms now enlarge the original monospace text without
+four-character grouping or artificial gaps. Desktop uses 24 pt instead of 18 pt;
+Android uses 26 sp instead of 20 sp. Long results still wrap/scroll, passphrase
+words/separators remain intact, and every copy route returns the exact original.
+Toggling the view never regenerates a password. The previews above were updated
+from the running interfaces after this change.
+
+Verification: [268 Python tests](evidence/readability-python-tests.txt), 22 JVM
+tests, Android lintDebug and both debug APK builds passed;
+[15 instrumented tests](evidence/readability-android-api35-tests.txt) passed on
+the API-35 emulator. The first instrumented attempt had three clipboard failures
+while an Android System UI ANR dialog held focus. That failed attempt was not
+counted as a pass; the full suite passed after dismissing the system dialog.
+The sampler, presets, persistence and signing mechanisms were not changed.
 
 ## Reproduce checks
 
