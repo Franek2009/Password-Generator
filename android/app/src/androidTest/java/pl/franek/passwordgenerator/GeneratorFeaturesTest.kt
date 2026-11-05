@@ -16,12 +16,13 @@ import org.junit.Test
 class GeneratorFeaturesTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
     private val model get() = ViewModelProvider(rule.activity)[GeneratorViewModel::class.java]
-    private fun idle(action: () -> Unit) { rule.runOnIdle(action); rule.waitForIdle() }
-    private fun waitWork() { rule.waitUntil(5000) { !model.working }; rule.waitForIdle() }
-    private fun reset() { idle {
-        model.customPresets.toList().forEach { model.deletePreset(it.id) }
-        model.update { UiState(language = "en", theme = "light") }
-    } }
+    private fun idle(action: () -> Unit) { rule.runOnIdle(action); waitWork() }
+    private fun waitWork() { rule.waitUntil(15000) { !model.working }; rule.waitForIdle() }
+    private fun reset() {
+        val ids=model.customPresets.map { it.id }
+        ids.forEach { id -> idle { model.deletePreset(id) } }
+        idle { model.update { UiState(language="en",theme="light") } }
+    }
 
     @Test fun builtinAndCustomPresetsRestoreAndDeleteWithoutSecrets() {
         reset()
@@ -51,7 +52,9 @@ class GeneratorFeaturesTest {
             model.deletePreset("strong")
             assertTrue(model.presets.any { it.id == "strong" })
             model.deletePreset(id)
-            assertFalse(GeneratorViewModel(app).customPresets.any { it.id == id })
+        }
+        idle {
+            assertFalse(GeneratorViewModel(rule.activity.application as Application).customPresets.any { it.id == id })
         }
         idle { model.applyPreset("phrase") }; waitWork()
         idle {
@@ -107,6 +110,8 @@ class GeneratorFeaturesTest {
             assertEquals("Public old result", model.state.password)
             assertNotNull(model.message)
             model.deletePreset(id)
+        }
+        idle {
             model.update { it.copy(mode = PasswordMode.HUMAN) }
             model.generate()
         }; waitWork()
@@ -127,15 +132,15 @@ class GeneratorFeaturesTest {
         idle {
             val app = rule.activity.application as Application
             val preferences = app.getSharedPreferences("generator", Context.MODE_PRIVATE)
-            val previous = preferences.getString("presets", "") ?: ""
+            val previous = preferences.getString("presets_v2", "") ?: ""
             try {
-                preferences.edit().putBoolean("presets", true).commit()
+                preferences.edit().putBoolean("presets_v2", true).commit()
                 val restarted = GeneratorViewModel(app)
                 assertEquals("preset_invalid", restarted.message)
                 assertTrue(restarted.customPresets.isEmpty())
                 assertEquals(3, restarted.presets.size)
-                assertEquals(true, preferences.all["presets"])
-            } finally { preferences.edit().putString("presets", previous).commit() }
+                assertEquals(true, preferences.all["presets_v2"])
+            } finally { preferences.edit().putString("presets_v2", previous).commit() }
         }
     }
 
@@ -152,17 +157,23 @@ class GeneratorFeaturesTest {
         assertEquals(spaces, PhraseTransformation.filter(AnnotatedString(spaces)).text.text)
     }
 
-    @Test fun transformationOffsetsAndOriginalAreConsistent() {
-        for (size in 0..65) {
-            val raw = "a".repeat(size)
-            val result = TranscriptionTransformation.filter(AnnotatedString(raw))
-            assertEquals(raw.chunked(4).joinToString("  "), result.text.text)
-            for (offset in 0..size) {
-                val mapped = result.offsetMapping.originalToTransformed(offset)
-                assertTrue(mapped in 0..result.text.length)
-                assertEquals(offset, result.offsetMapping.transformedToOriginal(mapped))
+    @Test fun transcriptionTogglePreservesDisplayedTextAndClipboard() {
+        reset()
+        for(raw in listOf("kR7!mP4#zQ9@", "aB2!".repeat(16), "word\u00a0with  spaces/next")) {
+            idle { model.update { it.copy(password=raw,transcription=false) } }
+            val result=rule.onNodeWithContentDescription("Your password will appear here")
+            result.performScrollTo().assertTextEquals(raw)
+            for(enabled in listOf(true,false,true)) {
+                rule.onNodeWithText("Transcription view").performScrollTo().performClick()
+                result.performScrollTo().assertTextEquals(raw)
+                idle {
+                    assertEquals(enabled,model.state.transcription)
+                    assertEquals(raw,model.state.password)
+                    model.copy()
+                    val clip=rule.activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    assertEquals(raw,clip.primaryClip!!.getItemAt(0).text.toString())
+                }
             }
-            for (offset in 0..result.text.length) assertTrue(result.offsetMapping.transformedToOriginal(offset) in 0..size)
         }
     }
 }

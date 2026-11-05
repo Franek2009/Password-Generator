@@ -15,6 +15,7 @@ data class PasswordConfig(
     val words: Int = 3,
     val separator: String = "-",
     val excludeSimilar: Boolean = false,
+    val advanced: AdvancedRules = AdvancedRules(),
 )
 
 class GenerationException(val code: String, message: String) : IllegalArgumentException(message)
@@ -40,6 +41,7 @@ class PasswordGenerator(private val random: SecureRandom = SecureRandom()) {
         }
 
     fun generateManager(config: PasswordConfig): String {
+        if (config.advanced.enabled) return generateAdvanced(config, random)
         validate(config.length >= 1, "invalid_length") { "Długość hasła musi wynosić co najmniej 1." }
         val selectedSets = buildList {
             if (config.lowercase) add(LOWERCASE)

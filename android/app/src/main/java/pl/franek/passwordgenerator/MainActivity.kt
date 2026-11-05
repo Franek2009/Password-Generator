@@ -195,12 +195,11 @@ private fun GeneratorScreen(ui: SharedUi, state: UiState, model: GeneratorViewMo
                 OutlinedTextField(value = state.password, onValueChange = {}, readOnly = true, singleLine = false, maxLines = 6,
                     visualTransformation = when {
                         human -> PhraseTransformation
-                        state.transcription -> TranscriptionTransformation
                         else -> VisualTransformation.None
                     },
                     placeholder = { Text(t("placeholder"), fontSize = 14.sp) },
                     textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace, fontSize = if (state.transcription) 26.sp else 20.sp,
-                        lineHeight = if (state.transcription) 34.sp else 28.sp, lineBreak = LineBreak.Paragraph),
+                        lineHeight = if (state.transcription) 34.sp else 28.sp, letterSpacing = 0.sp, lineBreak = LineBreak.Paragraph),
                     modifier = Modifier.weight(1f).clearAndSetSemantics {
                         contentDescription = t("placeholder")
                         text = AnnotatedString(state.password)
@@ -234,25 +233,15 @@ private fun GeneratorScreen(ui: SharedUi, state: UiState, model: GeneratorViewMo
         model.update { if (human) it.copy(humanSpecial = value) else it.copy(managerSpecial = value) }
     }
     if (!human) CheckOption(t("exclude_similar"), state.excludeSimilar) { value -> model.update { it.copy(excludeSimilar = value) } }
+    if (!human) AdvancedControls(state.advanced, model, t)
+    model.validationMessage?.let { code ->
+        Text(t(code), color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite })
+    }
     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
     Button(onClick = { focus.clearFocus(); model.generate() }, enabled = !model.working, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
         shape = RoundedCornerShape(7.dp), colors = ButtonDefaults.buttonColors(containerColor = button, contentColor = buttonText)) {
-        Text(t("generate"), fontSize = 17.sp, modifier = Modifier.padding(vertical = 4.dp))
-    }
-}
-
-/** Only display changes: TextField and clipboard retain the original value. */
-object TranscriptionTransformation : VisualTransformation {
-    override fun filter(text: AnnotatedString): TransformedText {
-        val size = text.length
-        val grouped = text.text.chunked(4).joinToString("  ")
-        val mapping = object : OffsetMapping {
-            override fun originalToTransformed(offset: Int): Int =
-                offset + (if (size == 0) 0 else minOf(offset / 4, (size - 1) / 4)) * 2
-            override fun transformedToOriginal(offset: Int): Int =
-                minOf(size, (offset / 6) * 4 + minOf(offset % 6, 4))
-        }
-        return TransformedText(AnnotatedString(grouped), mapping)
+        Text(t(if(model.working) "working" else "generate"), fontSize = 17.sp, modifier = Modifier.padding(vertical = 4.dp))
     }
 }
 
@@ -322,6 +311,61 @@ private fun PresetControls(state: UiState, model: GeneratorViewModel, t: (String
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun AdvancedControls(rules: AdvancedRules, model: GeneratorViewModel, t: (String) -> String) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    fun change(transform: (AdvancedRules) -> AdvancedRules) { model.update { it.copy(advanced=transform(it.advanced)) } }
+    Column(verticalArrangement=Arrangement.spacedBy(10.dp),modifier=Modifier.fillMaxWidth()) {
+        TextButton(onClick={ expanded=!expanded },modifier=Modifier.fillMaxWidth()) {
+            Text(t("advanced_rules"),Modifier.weight(1f));DropdownArrow(expanded)
+        }
+        if(expanded) {
+            CheckOption(t("advanced_enabled"),rules.enabled) { value -> change { it.copy(enabled=value) } }
+            val active=rules.enabled
+            listOf("min_uppercase","min_lowercase","min_digits","min_symbols").forEachIndexed { i,key ->
+                RuleNumber(t(key),rules.minima[i],0..64,active) { value -> change {
+                    when(i) { 0 -> it.copy(minUppercase=value);1 -> it.copy(minLowercase=value)
+                        2 -> it.copy(minDigits=value);else -> it.copy(minSymbols=value) }
+                } }
+            }
+            CheckOption(t("custom_alphabet_enabled"),rules.customAlphabetEnabled,active) { value -> change { it.copy(customAlphabetEnabled=value) } }
+            OutlinedTextField(rules.customAlphabet,{ value -> change { it.copy(customAlphabet=value) } },
+                label={ Text(t("custom_alphabet")) },enabled=active && rules.customAlphabetEnabled,
+                keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Ascii,autoCorrectEnabled=false),
+                modifier=Modifier.fillMaxWidth(),textStyle=LocalTextStyle.current.copy(fontFamily=FontFamily.Monospace))
+            OutlinedTextField(rules.forbiddenCharacters,{ value -> change { it.copy(forbiddenCharacters=value) } },
+                label={ Text(t("forbidden_characters")) },enabled=active,
+                keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Ascii,autoCorrectEnabled=false),
+                modifier=Modifier.fillMaxWidth(),textStyle=LocalTextStyle.current.copy(fontFamily=FontFamily.Monospace))
+            for(first in listOf(true,false)) {
+                Choice(t(if(first) "first_type" else "last_type"),if(first) rules.firstType.wire else rules.lastType.wire,
+                    CharacterType.entries.map { it.wire },{ t("character_$it") },enabled=active) { value ->
+                    change { if(first) it.copy(firstType=CharacterType.entries.first { type -> type.wire==value })
+                        else it.copy(lastType=CharacterType.entries.first { type -> type.wire==value }) }
+                }
+            }
+            CheckOption(t("limit_runs"),rules.maxIdenticalRun!=null,active) { value -> change { it.copy(maxIdenticalRun=if(value) 2 else null) } }
+            RuleNumber(t("max_identical_run"),rules.maxIdenticalRun?:2,1..64,active && rules.maxIdenticalRun!=null) { value -> change { it.copy(maxIdenticalRun=value) } }
+        }
+    }
+}
+
+@Composable
+private fun RuleNumber(label:String,value:Int,range:IntRange,enabled:Boolean,onChange:(Int)->Unit) {
+    var input by remember(value) { mutableStateOf(value.toString()) }
+    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+        Text(label,Modifier.weight(1f),color=if(enabled)MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha=0.38f))
+        OutlinedTextField(input,{ raw ->
+            if(raw.length<=2 && raw.all { it in '0'..'9' }) {
+                input=raw;raw.toIntOrNull()?.takeIf { it in range }?.let(onChange)
+            }
+        },enabled=enabled,singleLine=true,modifier=Modifier.width(80.dp).onFocusChanged { if(!it.isFocused)input=value.toString() }
+            .semantics { contentDescription=label },isError=enabled && input.toIntOrNull()?.let { it !in range }!=false,
+            keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun NumberSetting(label: String, value: Int, range: IntRange, onChange: (Int) -> Unit) {
     val focus = LocalFocusManager.current
     var input by remember(value) { mutableStateOf(value.toString()) }
@@ -356,10 +400,10 @@ private fun NumberSetting(label: String, value: Int, range: IntRange, onChange: 
 }
 
 @Composable
-private fun CheckOption(label: String, checked: Boolean, onChanged: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(value = checked, role = Role.Checkbox, onValueChange = onChanged),
+private fun CheckOption(label: String, checked: Boolean, enabled: Boolean = true, onChanged: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(value = checked, role = Role.Checkbox, enabled = enabled, onValueChange = onChanged),
         verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(checked, null)
+        Checkbox(checked, null, enabled=enabled)
         Spacer(Modifier.width(8.dp))
         Text(label)
     }

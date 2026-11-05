@@ -34,6 +34,7 @@ def test_roundtrip_and_delete(tmp_path):
         "numbers",
         "special",
         "exclude_similar",
+        "advanced",
     }
     with pytest.raises(ValueError):
         store.save("TRAVEL", PasswordConfig())
@@ -71,14 +72,14 @@ def test_invalid_record_preserves_valid_neighbor(tmp_path, change):
     settings = QSettings(str(tmp_path / "presets.ini"), QSettings.IniFormat)
     store = PresetStore(settings)
     store.save("Valid", PasswordConfig())
-    data = json.loads(settings.value("presets"))
+    data = json.loads(settings.value("presets_v2"))
     bad = {
         "id": "custom-00000000-0000-4000-8000-000000000000",
         "name": "Bad",
         "config": {**data["presets"][0]["config"], **change},
     }
     data["presets"].append(bad)
-    settings.setValue("presets", json.dumps(data))
+    settings.setValue("presets_v2", json.dumps(data))
     loaded = PresetStore(settings)
     assert loaded.invalid
     assert [p.name for p in loaded.custom] == ["Valid"]
@@ -103,3 +104,60 @@ def test_cross_platform_contract():
     )
     assert fixture["similar_characters"] == SIMILAR_CHARACTERS
     assert fixture["builtins"] == [{"id": p.id, "config": p.config} for p in builtins()]
+
+
+def test_v1_migration_is_lazy_and_preserves_original(tmp_path):
+    from pathlib import Path
+
+    settings = QSettings(str(tmp_path / "p.ini"), QSettings.IniFormat)
+    original = (Path(__file__).parent / "fixtures/legacy_presets_v1.json").read_text()
+    settings.setValue("presets", original)
+    loaded = PresetStore(settings)
+    assert not loaded.invalid and len(loaded.custom) == 2
+    assert not settings.contains("presets_v2")
+    assert loaded.custom[0].config["advanced"]["enabled"] is False
+    loaded.save("New entry", PasswordConfig())
+    assert json.loads(settings.value("presets_v2"))["version"] == 2
+    assert settings.value("presets") == original
+    assert len(PresetStore(settings).custom) == 3
+
+
+def test_corrupt_v2_does_not_fall_back_to_v1(tmp_path):
+    from pathlib import Path
+
+    settings = QSettings(str(tmp_path / "p.ini"), QSettings.IniFormat)
+    settings.setValue(
+        "presets",
+        (Path(__file__).parent / "fixtures/legacy_presets_v1.json").read_text(),
+    )
+    settings.setValue("presets_v2", "{")
+    loaded = PresetStore(settings)
+    assert loaded.invalid and not loaded.custom
+    assert settings.value("presets_v2") == "{"
+
+
+def test_unknown_version_blocks_writing(tmp_path):
+    settings = QSettings(str(tmp_path / "p.ini"), QSettings.IniFormat)
+    original = '{"version":3,"presets":[]}'
+    settings.setValue("presets_v2", original)
+    loaded = PresetStore(settings)
+    with pytest.raises(ValueError, match="preset_version"):
+        loaded.save("New entry", PasswordConfig())
+    assert settings.value("presets_v2") == original
+
+
+def test_failed_write_keeps_in_memory_presets(tmp_path, monkeypatch):
+    settings = QSettings(str(tmp_path / "p.ini"), QSettings.IniFormat)
+    store = PresetStore(settings)
+    monkeypatch.setattr(settings, "status", lambda: QSettings.AccessError)
+    with pytest.raises(ValueError, match="settings_write"):
+        store.save("Not saved", PasswordConfig())
+    assert not store.custom
+
+
+def test_unknown_validation_schema_is_never_treated_as_legacy():
+    from app.presets import builtins, validate_parameters
+
+    for version in (0, 3, True, "2"):
+        with pytest.raises(ValueError, match="preset_version"):
+            validate_parameters(builtins()[0].config, version=version)

@@ -1,6 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
+from app.advanced_rules import AdvancedRules
 from app.errors import GenerationError
 
 
@@ -33,6 +34,7 @@ class PasswordConfig:
     wordlist_path: str | None = None
 
     exclude_similar: bool = False
+    advanced: AdvancedRules = field(default_factory=AdvancedRules)
 
     def validate(self) -> None:
         if self.mode == PasswordMode.MANAGER:
@@ -43,6 +45,14 @@ class PasswordConfig:
             raise GenerationError("unknown_error", "Unsupported password mode.")
 
     def _validate_manager(self) -> None:
+        if not isinstance(self.advanced, AdvancedRules):
+            raise GenerationError("rules_invalid", "Invalid advanced rules.")
+        self.advanced.validate_structure()
+        if self.advanced.enabled:
+            from app.advanced import compile_rules
+
+            compile_rules(self)
+            return
         if self.length < 1:
             raise GenerationError(
                 "invalid_length", "Password length must be at least 1."

@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "similar_characters": "0Oo1Il",
   "builtins": [
     {
@@ -11,7 +11,20 @@
         "lowercase": true,
         "numbers": true,
         "special": true,
-        "exclude_similar": false
+        "exclude_similar": false,
+        "advanced": {
+          "enabled": false,
+          "min_uppercase": 0,
+          "min_lowercase": 0,
+          "min_digits": 0,
+          "min_symbols": 0,
+          "custom_alphabet_enabled": false,
+          "custom_alphabet": "",
+          "forbidden_characters": "",
+          "first_type": "any",
+          "last_type": "any",
+          "max_identical_run": null
+        }
       }
     },
     {
@@ -23,7 +36,20 @@
         "lowercase": true,
         "numbers": true,
         "special": true,
-        "exclude_similar": false
+        "exclude_similar": false,
+        "advanced": {
+          "enabled": false,
+          "min_uppercase": 0,
+          "min_lowercase": 0,
+          "min_digits": 0,
+          "min_symbols": 0,
+          "custom_alphabet_enabled": false,
+          "custom_alphabet": "",
+          "forbidden_characters": "",
+          "first_type": "any",
+          "last_type": "any",
+          "max_identical_run": null
+        }
       }
     },
     {

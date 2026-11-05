@@ -10,47 +10,41 @@ environment.
 
 ## Features
 
-* Random password mode for highly random passwords
-* Passphrase mode for readable word-based passwords
-* Cryptographically secure randomness using Python's `secrets` module
-* Configurable length, character sets, word count and separators
-* Built-in Polish word list
-* Custom `.txt` word lists
-* Optional numbers and special characters
-* Copying generated passwords to the clipboard
-* Input validation and clear error messages
-* Standalone Linux and Windows builds
-* Native Android application in Kotlin and Jetpack Compose
+* Random passwords and readable passphrases
+* Cryptographic randomness: Python `secrets` and Android `SecureRandom`
+* Configurable length, character groups, word count and separators
+* Built-in Polish word list and custom UTF-8 word lists
+* Built-in presets and named custom presets, saved between sessions
+* Optional exclusion of similar characters (`0 O o 1 I l`)
+* Larger monospace transcription view with natural character spacing
+* Complete-result copying, wrapping and scrolling for long results
+* Light/dark themes and Polish/English interfaces
 
-## v1.2.0
+Generated passwords remain in memory; they are not saved in settings or presets.
+Automatic copying is off by default. Switching modes clears the result without
+generating another password. An unavailable custom word list produces an error
+instead of silently selecting another dictionary.
 
-This release adds the following features on desktop and Android:
+## v1.3.0 — Advanced generation
 
-* **Presets:** Standard (16 characters), Strong (24 characters), and Phrase
-  (5 words, `-`, built-in Polish list, no added numbers or symbols). Select a
-  preset below the result. Save or delete named custom presets through the
-  desktop overflow menu or Android preset menu. Built-ins cannot be deleted.
-* Presets restore only the active mode's generator parameters. Names must be
-  unique (including built-in names), with 1–64 characters. Theme, language,
-  automatic copying and transcription view remain independent preferences.
-* **Exclude similar characters:** optionally removes `0 O o 1 I l` in random
-  mode while preserving every selected character set. Off by default; saved
-  with preferences and random-mode presets. Passphrases are unaffected.
-* **Transcription view:** larger monospace text with visual groups of four in
-  random mode. Passphrases retain their words and separators. Copying retains
-  the entire original result, without visual spacing. Switching this view
-  does not generate or copy a new password.
-* Long results wrap and scroll. Switching generator modes or applying a preset
-  clears the result without generating another password.
+The optional **Advanced rules** section adds minimum counts for each character
+group, a custom alphabet, forbidden characters, first/last character types and
+a limit on identical consecutive characters. A minimum of zero makes a group
+optional in advanced mode. Expand the section and enable
+**Use advanced rules** to apply them. With advanced mode off, the classic
+random-password generator retains its existing behavior.
 
-Presets contain configuration only. Results are never saved in settings or
-presets. Invalid preset records are ignored with a warning. An unavailable
-custom word list, including a lost Android document permission, causes an
-error; generation and preset application do not silently substitute a dictionary.
-Choose the built-in list or select the custom file again to recover.
+Custom and forbidden alphabets use visible ASCII (`!` through `~`, without
+spaces). Advanced generation samples uniformly from all valid results using
+exact integer counts. Impossible rules show an error; rules allowing a single
+result show a warning. Passphrases are unaffected.
 
-[Screenshots](docs/v1.2.0-preview/README.md) and the
-[release audit](docs/v1.2.0-audit.md) document the implementation and verification.
+New rules can be saved in presets. Presets from v1.2.0 remain compatible.
+Transcription view now enlarges the original text without the previous
+four-character grouping; copying always preserves the exact original.
+
+[Generation rules and algorithm](docs/v1.3.0/algorithm.md) ·
+[Preset compatibility](docs/v1.3.0/presets.md)
 
 ## Android
 
@@ -61,8 +55,8 @@ the application. See [`android/README.md`](android/README.md) for requirements.
 
 ## Download
 
-**The latest release includes the unified desktop and Android interface shown below.**
-Download the package for your operating system; no GitHub login is needed.
+Download the latest published package for your platform; no GitHub login is
+needed. Standalone desktop packages run without installing Python.
 
 | Platform | Download |
 | --- | --- |
@@ -70,26 +64,27 @@ Download the package for your operating system; no GitHub login is needed.
 | Linux x86-64 | [Linux archive](https://github.com/Franek2009/Password-Generator/releases/latest/download/PasswordGenerator-linux-x86_64.tar.gz) |
 | Windows x86-64 | [Windows archive](https://github.com/Franek2009/Password-Generator/releases/latest/download/PasswordGenerator-windows-x86_64.zip) |
 
-[Latest release notes and all files](https://github.com/Franek2009/Password-Generator/releases/latest). Android installs as an
-update using the existing signing key. Compare the version in Android app info
-with the version shown on the release page.
+[Release notes and all files](https://github.com/Franek2009/Password-Generator/releases/latest).
+The published Android APK uses the existing distribution signing key.
 
 [Third-party dependency sources](https://github.com/Franek2009/Password-Generator/releases/latest/download/PasswordGenerator-third-party-sources.tar.gz)
-are provided for license compliance; they are not required to run the app.
+are provided for license compliance and are not required to run the app.
 
-## Screenshots — current interface
+[Development builds and verification details](docs/v1.3.0/README.md).
 
-These captures show the v1.2.0 interface. Android captures come from a physical
-Samsung phone in landscape orientation.
-Example passwords are public demonstration strings.
+## Screenshots
+
+The running desktop and Android interfaces in both themes. Example passwords
+are public demonstration strings. Android captures use an API-35 emulator.
 
 | Platform | Dark theme | Light theme |
 | --- | --- | --- |
-| Desktop | ![Desktop v1.2.0, dark theme](docs/v1.2.0-preview/desktop-dark-random.png) | ![Desktop v1.2.0, light theme](docs/v1.2.0-preview/desktop-light-random.png) |
-| Android | ![Android v1.2.0, dark theme](docs/v1.2.0-preview/android-dark-random.png) | ![Android v1.2.0, light theme](docs/v1.2.0-preview/android-light-random.png) |
+| Desktop | ![Desktop, dark theme](docs/v1.3.0/preview/desktop-dark-narrow.png) | ![Desktop, light theme](docs/v1.3.0/preview/desktop-light-narrow.png) |
+| Android | ![Android, dark theme](docs/v1.3.0/preview/android-dark-result.png) | ![Android, light theme](docs/v1.3.0/preview/android-light-result.png) |
 
-[Full desktop/Android gallery](docs/v1.2.0-preview/README.md).
-[Archived v1.1.0 reference gallery](docs/ui-preview/README.md).
+[Full gallery](docs/v1.3.0/README.md#verified-previews) ·
+[Archived v1.2.0 gallery](docs/v1.2.0-preview/README.md) ·
+[Archived v1.1.0 gallery](docs/ui-preview/README.md)
 
 ## Running the Standalone Application
 
@@ -134,9 +129,9 @@ character sets can be enabled independently:
 The password length can be configured from **8 to 64 characters**. At least
 one character set must be enabled.
 
-When multiple character sets are selected, the generator guarantees that at
-least one character from every selected set is present, provided the requested
-length is sufficient.
+With **Advanced rules off**, selecting multiple character sets guarantees at
+least one character from every selected set, provided the requested length is
+sufficient. Advanced mode follows the explicit minima instead.
 
 ### Passphrase Mode
 
@@ -450,4 +445,4 @@ Custom word lists remain selectable as UTF-8 text files. An unavailable saved
 list causes an error and requires an explicit list selection; the application does not silently choose another dictionary.
 Android's clipboard marks copied passwords as sensitive on Android 13+.
 
-See the [review gallery and validation notes](https://github.com/Franek2009/Password-Generator/blob/master/docs/v1.2.0-preview/README.md).
+See the [advanced-generation gallery and validation notes](docs/v1.3.0/README.md).

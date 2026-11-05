@@ -1,0 +1,275 @@
+[
+  {
+    "length": 4,
+    "rules": {
+      "enabled": true,
+      "min_uppercase": 0,
+      "min_lowercase": 1,
+      "min_digits": 1,
+      "min_symbols": 0,
+      "custom_alphabet_enabled": true,
+      "custom_alphabet": "1a",
+      "forbidden_characters": "",
+      "first_type": "any",
+      "last_type": "any",
+      "max_identical_run": null
+    },
+    "count": "14",
+    "ranks": [
+      {
+        "rank": "0",
+        "result": "111a"
+      },
+      {
+        "rank": "7",
+        "result": "a111"
+      },
+      {
+        "rank": "13",
+        "result": "aaa1"
+      }
+    ]
+  },
+  {
+    "length": 4,
+    "rules": {
+      "enabled": true,
+      "min_uppercase": 1,
+      "min_lowercase": 1,
+      "min_digits": 1,
+      "min_symbols": 1,
+      "custom_alphabet_enabled": true,
+      "custom_alphabet": "!12?ABab",
+      "forbidden_characters": "",
+      "first_type": "any",
+      "last_type": "any",
+      "max_identical_run": 1
+    },
+    "count": "384",
+    "ranks": [
+      {
+        "rank": "0",
+        "result": "!1Aa"
+      },
+      {
+        "rank": "192",
+        "result": "A!1a"
+      },
+      {
+        "rank": "383",
+        "result": "bB?2"
+      }
+    ]
+  },
+  {
+    "length": 4,
+    "rules": {
+      "enabled": true,
+      "min_uppercase": 0,
+      "min_lowercase": 0,
+      "min_digits": 1,
+      "min_symbols": 0,
+      "custom_alphabet_enabled": true,
+      "custom_alphabet": "!12Aa",
+      "forbidden_characters": "!A",
+      "first_type": "any",
+      "last_type": "any",
+      "max_identical_run": 2
+    },
+    "count": "66",
+    "ranks": [
+      {
+        "rank": "0",
+        "result": "1121"
+      },
+      {
+        "rank": "33",
+        "result": "22a1"
+      },
+      {
+        "rank": "65",
+        "result": "aa2a"
+      }
+    ]
+  },
+  {
+    "length": 4,
+    "rules": {
+      "enabled": true,
+      "min_uppercase": 0,
+      "min_lowercase": 0,
+      "min_digits": 0,
+      "min_symbols": 0,
+      "custom_alphabet_enabled": true,
+      "custom_alphabet": "1a",
+      "forbidden_characters": "",
+      "first_type": "letter",
+      "last_type": "digit",
+      "max_identical_run": 1
+    },
+    "count": "1",
+    "ranks": [
+      {
+        "rank": "0",
+        "result": "a1a1"
+      }
+    ]
+  },
+  {
+    "length": 4,
+    "rules": {
+      "enabled": true,
+      "min_uppercase": 0,
+      "min_lowercase": 0,
+      "min_digits": 0,
+      "min_symbols": 0,
+      "custom_alphabet_enabled": true,
+      "custom_alphabet": "ab",
+      "forbidden_characters": "",
+      "first_type": "letter",
+      "last_type": "any",
+      "max_identical_run": 1
+    },
+    "count": "2",
+    "ranks": [
+      {
+        "rank": "0",
+        "result": "abab"
+      },
+      {
+        "rank": "1",
+        "result": "baba"
+      }
+    ]
+  },
+  {
+    "length": 3,
+    "rules": {
+      "enabled": true,
+      "min_uppercase": 0,
+      "min_lowercase": 0,
+      "min_digits": 0,
+      "min_symbols": 0,
+      "custom_alphabet_enabled": true,
+      "custom_alphabet": "!1Aa",
+      "forbidden_characters": "",
+      "first_type": "upper",
+      "last_type": "symbol",
+      "max_identical_run": null
+    },
+    "count": "4",
+    "ranks": [
+      {
+        "rank": "0",
+        "result": "A!!"
+      },
+      {
+        "rank": "2",
+        "result": "AA!"
+      },
+      {
+        "rank": "3",
+        "result": "Aa!"
+      }
+    ]
+  },
+  {
+    "length": 1,
+    "rules": {
+      "enabled": true,
+      "min_uppercase": 0,
+      "min_lowercase": 0,
+      "min_digits": 0,
+      "min_symbols": 0,
+      "custom_alphabet_enabled": true,
+      "custom_alphabet": "1a",
+      "forbidden_characters": "",
+      "first_type": "letter",
+      "last_type": "digit",
+      "max_identical_run": null
+    },
+    "count": "0",
+    "ranks": []
+  },
+  {
+    "length": 4,
+    "rules": {
+      "enabled": true,
+      "min_uppercase": 0,
+      "min_lowercase": 0,
+      "min_digits": 0,
+      "min_symbols": 0,
+      "custom_alphabet_enabled": true,
+      "custom_alphabet": "a",
+      "forbidden_characters": "",
+      "first_type": "any",
+      "last_type": "any",
+      "max_identical_run": 2
+    },
+    "count": "0",
+    "ranks": []
+  },
+  {
+    "length": 4,
+    "rules": {
+      "enabled": true,
+      "min_uppercase": 2,
+      "min_lowercase": 0,
+      "min_digits": 2,
+      "min_symbols": 0,
+      "custom_alphabet_enabled": true,
+      "custom_alphabet": "!2Aa",
+      "forbidden_characters": "",
+      "first_type": "lower",
+      "last_type": "any",
+      "max_identical_run": null
+    },
+    "count": "0",
+    "ranks": []
+  },
+  {
+    "length": 64,
+    "rules": {
+      "enabled": true,
+      "min_uppercase": 0,
+      "min_lowercase": 0,
+      "min_digits": 0,
+      "min_symbols": 0,
+      "custom_alphabet_enabled": false,
+      "custom_alphabet": "",
+      "forbidden_characters": "",
+      "first_type": "any",
+      "last_type": "any",
+      "max_identical_run": null
+    },
+    "count": "1906262174603609240179178656657625086945986037788719949935941357851066322596406102384587670757587004664979877271875661328285696",
+    "ranks": [
+      {
+        "rank": "0",
+        "result": "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+      },
+      {
+        "rank": "1906262174603609240179178656657625086945986037788719949935941357851066322596406102384587670757587004664979877271875661328285695",
+        "result": "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+      }
+    ]
+  },
+  {
+    "length": 64,
+    "rules": {
+      "enabled": true,
+      "min_uppercase": 16,
+      "min_lowercase": 16,
+      "min_digits": 16,
+      "min_symbols": 16,
+      "custom_alphabet_enabled": false,
+      "custom_alphabet": "",
+      "forbidden_characters": "",
+      "first_type": "any",
+      "last_type": "any",
+      "max_identical_run": null
+    },
+    "count": "15222476434373702925822573098947322938348107292184208129039365475318986456493915270532106021714855460864000000000000000000",
+    "ranks": []
+  }
+]

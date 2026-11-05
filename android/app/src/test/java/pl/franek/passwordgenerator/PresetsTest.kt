@@ -13,7 +13,7 @@ class PresetsTest {
             val expected = fixture.getJSONObject(index)
             assertEquals(expected.getString("id"), p.id)
             val config = expected.getJSONObject("config")
-            assertEquals(config.keys().asSequence().associateWith { config.get(it) }, p.config)
+            assertTrue(config.similar(Presets.jsonObject(p.config)))
         }
         val restored = Presets.apply(UiState(length = 48, password = "memory-only", autoCopy = false), Presets.builtins()[2])
         assertEquals(PasswordMode.HUMAN, restored.mode)
@@ -40,7 +40,7 @@ class PresetsTest {
         }
         val p = Presets.create("Valid", UiState(), emptyList())
         val root = JSONObject(Presets.encode(listOf(p)))
-        root.getJSONArray("presets").put(JSONObject().put("id", "custom-00000000-0000-4000-8000-000000000000").put("name", "Bad").put("config", JSONObject(p.config).put("password", "secret")))
+        root.getJSONArray("presets").put(JSONObject().put("id", "custom-00000000-0000-4000-8000-000000000000").put("name", "Bad").put("config", Presets.jsonObject(p.config).put("password", "secret")))
         assertEquals(listOf(p) to true, Presets.decode(root.toString()))
         for (bad in listOf(p.config + ("length" to true), p.config + ("length" to 65), p.config + ("numbers" to "true"))) {
             try { Presets.validate(bad); fail("Must reject invalid types") } catch (_: IllegalArgumentException) { }
@@ -59,4 +59,30 @@ class PresetsTest {
         }
         assertEquals("Olive-Olive-Olive", generator.generate(PasswordConfig(mode = PasswordMode.HUMAN, numbers = false, special = false, excludeSimilar = true), listOf("olive")))
     }
+    @Test fun legacyMigrationUsesDisabledRulesAndNewFormat() {
+        val raw=javaClass.getResource("/legacy_presets_v1.json")!!.readText()
+        val (presets,invalid)=Presets.decode(raw,1)
+        assertFalse(invalid);assertEquals(2,presets.size)
+        val restored=Presets.apply(UiState(),presets[0])
+        assertFalse(restored.advanced.enabled)
+        assertEquals(16,restored.length)
+        val encoded=Presets.encode(presets)
+        assertEquals(2,JSONObject(encoded).getInt("version"))
+        assertEquals(presets to false,Presets.decode(encoded))
+        assertTrue(Presets.decode(raw,2).second)
+    }
+
+    @Test fun schemaAndNestingGuardsPreserveLiteralAscii() {
+        try { Presets.validate(Presets.builtins()[0].config,3);fail() }
+        catch(error:IllegalArgumentException) { assertEquals("preset_version",error.message) }
+        val future=JSONObject(Presets.encode(emptyList())).put("version",2147483648L).toString()
+        assertTrue(Presets.unsupportedVersion(future))
+        assertTrue(Presets.decode(future).second)
+        val deep="{\"version\":2,\"presets\":"+"[".repeat(30)+"]".repeat(30)+"}"
+        assertTrue(Presets.decode(deep).second)
+        val rules=AdvancedRules(customAlphabet="{}[]".repeat(30))
+        val raw=Presets.jsonObject(rules.toData()).toString()
+        assertEquals(rules.toData(),Presets.decodeRules(raw).toData())
+    }
+
 }

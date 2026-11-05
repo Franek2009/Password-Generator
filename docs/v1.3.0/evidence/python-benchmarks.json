@@ -1,0 +1,83 @@
+[
+  {
+    "case": "typical",
+    "seconds": 0.012384,
+    "peak_process_rss_mib": 19.26953125,
+    "states": 1353,
+    "count_bits": 130,
+    "feasible": true,
+    "python": "3.14.8"
+  },
+  {
+    "case": "exact_quotas",
+    "seconds": 0.474805,
+    "peak_process_rss_mib": 51.703125,
+    "states": 101506,
+    "count_bits": 403,
+    "feasible": true,
+    "python": "3.14.8"
+  },
+  {
+    "case": "hard_run_1",
+    "seconds": 1.111398,
+    "peak_process_rss_mib": 69.5859375,
+    "states": 93390,
+    "count_bits": 412,
+    "feasible": true,
+    "python": "3.14.8"
+  },
+  {
+    "case": "hard_run_2",
+    "seconds": 1.190201,
+    "peak_process_rss_mib": 70.5,
+    "states": 98580,
+    "count_bits": 413,
+    "feasible": true,
+    "python": "3.14.8"
+  },
+  {
+    "case": "hard_run_24",
+    "seconds": 1.079948,
+    "peak_process_rss_mib": 79.1796875,
+    "states": 182396,
+    "count_bits": 413,
+    "feasible": true,
+    "python": "3.14.8"
+  },
+  {
+    "case": "hard_end",
+    "seconds": 1.288366,
+    "peak_process_rss_mib": 70.2890625,
+    "states": 98580,
+    "count_bits": 411,
+    "feasible": true,
+    "python": "3.14.8"
+  },
+  {
+    "case": "four_characters",
+    "seconds": 0.127752,
+    "peak_process_rss_mib": 23.7109375,
+    "states": 10774,
+    "count_bits": 123,
+    "feasible": true,
+    "python": "3.14.8"
+  },
+  {
+    "case": "unique_result",
+    "seconds": 0.000726,
+    "peak_process_rss_mib": 18.9609375,
+    "states": 66,
+    "count_bits": 1,
+    "feasible": true,
+    "python": "3.14.8"
+  },
+  {
+    "case": "impossible_run",
+    "seconds": 0.000522,
+    "peak_process_rss_mib": 18.81640625,
+    "states": 66,
+    "count_bits": 0,
+    "feasible": false,
+    "python": "3.14.8"
+  }
+]

@@ -1,0 +1,6 @@
+ADVANCED_ENGINE_BENCHMARK cap=1 forbidden= time_ms=1406 extra_heap_mib=58 extra_pss_mib=35 states=83175 budget_met=true
+ADVANCED_ENGINE_BENCHMARK cap=2 forbidden= time_ms=958 extra_heap_mib=48 extra_pss_mib=48 states=83195 budget_met=true
+ADVANCED_ENGINE_BENCHMARK cap=8 forbidden= time_ms=871 extra_heap_mib=47 extra_pss_mib=49 states=83197 budget_met=true
+ADVANCED_ENGINE_BENCHMARK cap=24 forbidden= time_ms=973 extra_heap_mib=38 extra_pss_mib=40 states=150604 budget_met=true
+ADVANCED_ENGINE_BENCHMARK cap=1 forbidden=A time_ms=1148 extra_heap_mib=91 extra_pss_mib=95 states=156866 budget_met=true
+ADVANCED_ENGINE_BENCHMARK cap=2 forbidden=A time_ms=1185 extra_heap_mib=85 extra_pss_mib=74 states=156881 budget_met=true

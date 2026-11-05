@@ -1,0 +1,9 @@
+
+pl.franek.passwordgenerator.AdvancedEngineBenchmarkTest:.
+pl.franek.passwordgenerator.AdvancedUiTest:....
+pl.franek.passwordgenerator.GeneratorFeaturesTest:.......
+pl.franek.passwordgenerator.UnifiedUiTest:...
+
+Time: 62.811
+
+OK (15 tests)

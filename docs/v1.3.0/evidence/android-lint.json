@@ -1,0 +1,27 @@
+[
+  {
+    "severity": "Warning",
+    "id": "ApplySharedPref",
+    "count": 2
+  },
+  {
+    "severity": "Warning",
+    "id": "DataExtractionRules",
+    "count": 1
+  },
+  {
+    "severity": "Warning",
+    "id": "GradleDependency",
+    "count": 6
+  },
+  {
+    "severity": "Warning",
+    "id": "MonochromeLauncherIcon",
+    "count": 1
+  },
+  {
+    "severity": "Warning",
+    "id": "ObsoleteSdkInt",
+    "count": 1
+  }
+]

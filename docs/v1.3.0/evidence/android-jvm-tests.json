@@ -1,0 +1,26 @@
+[
+  {
+    "name": "pl.franek.passwordgenerator.AdvancedGenerationTest",
+    "tests": "8",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "1.998"
+  },
+  {
+    "name": "pl.franek.passwordgenerator.PasswordGeneratorTest",
+    "tests": "8",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "0.035"
+  },
+  {
+    "name": "pl.franek.passwordgenerator.PresetsTest",
+    "tests": "6",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "0.227"
+  }
+]

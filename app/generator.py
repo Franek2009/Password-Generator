@@ -71,6 +71,9 @@ def generate_human_password(config: PasswordConfig) -> str:
 
 
 def _generate_manager_password(config: PasswordConfig) -> str:
+    if config.advanced.enabled:
+        from app.advanced import generate_advanced
+        return generate_advanced(config)
     character_sets = []
 
     if config.lowercase:

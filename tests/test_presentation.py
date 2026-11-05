@@ -45,3 +45,21 @@ def test_validation_has_stable_translation_code_and_valueerror_compatibility():
     assert isinstance(result.value, GenerationError)
     assert result.value.code == "no_sets"
     assert result.value.code in UI["strings"]["pl"]
+
+
+def test_advanced_preferences_roundtrip_and_invalid_read(tmp_path):
+    import json
+
+    from app.advanced_rules import AdvancedRules
+
+    store = QSettings(str(tmp_path / "advanced.ini"), QSettings.IniFormat)
+    prefs = Preferences(store)
+    rules = AdvancedRules(
+        enabled=True, min_digits=3, custom_alphabet_enabled=True, custom_alphabet="aA2!"
+    )
+    prefs.set_advanced(rules)
+    assert Preferences(store).advanced.to_data() == rules.to_data()
+    store.setValue("advanced_rules_v1", json.dumps({"password": "never-used"}))
+    read = Preferences(store)
+    assert read.rules_invalid and not read.advanced.enabled
+    assert store.value("advanced_rules_v1") == json.dumps({"password": "never-used"})
