@@ -97,19 +97,20 @@ the application. See [`android/README.md`](android/README.md) for requirements.
 
 **For testing the new advanced rules, download one of these builds.** All three
 packages contain application code from commit
-[`ea055d7`](https://github.com/Franek2009/Password-Generator/commit/ea055d70cc084bd6871391af5259c4da47a70624)
-on `feature/v1.3.0-advanced-generation`. Later documentation-only commits do not
+[`2e723db`](https://github.com/Franek2009/Password-Generator/commit/2e723db7dd0e4365410d075efd043fd5f7a8fc9f)
+on `feature/v1.3.0-advanced-generation`, including the transcription readability
+fix (larger text with natural spacing). Later documentation-only commits do not
 change these binaries.
 
 | Platform | Test download | Artifact name |
 | --- | --- | --- |
-| Android 8.0+ | [Download debug APK artifact](https://github.com/Franek2009/Password-Generator/actions/runs/42085993094/artifacts/13442448155) | `PasswordGenerator-android-debug` |
-| Linux x86-64 | [Download Linux artifact](https://github.com/Franek2009/Password-Generator/actions/runs/42085991013/artifacts/13443521678) | `PasswordGenerator-linux-x86_64.tar.gz` |
-| Windows x86-64 | [Download Windows artifact](https://github.com/Franek2009/Password-Generator/actions/runs/42085991013/artifacts/13442712119) | `PasswordGenerator-windows-x86_64.zip` |
+| Android 8.0+ | [Download debug APK artifact](https://github.com/Franek2009/Password-Generator/actions/runs/42089173400/artifacts/13442829913) | `PasswordGenerator-android-debug` |
+| Linux x86-64 | [Download Linux artifact](https://github.com/Franek2009/Password-Generator/actions/runs/42089184974/artifacts/13443528566) | `PasswordGenerator-linux-x86_64.tar.gz` |
+| Windows x86-64 | [Download Windows artifact](https://github.com/Franek2009/Password-Generator/actions/runs/42089184974/artifacts/13443753028) | `PasswordGenerator-windows-x86_64.zip` |
 
 1. Sign in to GitHub to download Actions artifacts. If a direct download does
-   not start, open the [desktop build](https://github.com/Franek2009/Password-Generator/actions/runs/42085991013)
-   or [APK build](https://github.com/Franek2009/Password-Generator/actions/runs/42085993094)
+   not start, open the [desktop build](https://github.com/Franek2009/Password-Generator/actions/runs/42089184974)
+   or [APK build](https://github.com/Franek2009/Password-Generator/actions/runs/42089173400)
    and select the artifact listed above in **Artifacts** at the bottom.
 2. Extract the outer artifact ZIP. On desktop, also extract the enclosed
    platform archive and run the application from its complete extracted folder.
@@ -118,15 +119,16 @@ change these binaries.
    **Use advanced rules**. Expanding the section alone leaves the rules disabled.
 
 The APK uses a debug signing key and cannot update the stable release signed
-with the distribution key. Development builds may display a development version
+with the distribution key. Debug APKs from different CI runs can also use
+different signing keys. Development builds may display a development version
 rather than `1.3.0`; the source commit above identifies this test snapshot.
 Artifacts have limited retention; if expired, rerun the existing build workflows
 for the desired branch instead of downloading the stable release by mistake.
 
-The [Windows/Linux package build](https://github.com/Franek2009/Password-Generator/actions/runs/42085991013),
-[APK build](https://github.com/Franek2009/Password-Generator/actions/runs/42085993094),
-[Python tests](https://github.com/Franek2009/Password-Generator/actions/runs/42085993371)
-and [Android UI tests on API 26 and 35](https://github.com/Franek2009/Password-Generator/actions/runs/42085993657)
+The [Windows/Linux package build](https://github.com/Franek2009/Password-Generator/actions/runs/42089184974),
+[APK build](https://github.com/Franek2009/Password-Generator/actions/runs/42089173400),
+[Python tests](https://github.com/Franek2009/Password-Generator/actions/runs/42089173408)
+and [Android UI tests on API 26 and 35](https://github.com/Franek2009/Password-Generator/actions/runs/42089173437)
 all passed for this application revision. Building Windows successfully does not
 replace manual testing on Windows or a physical Android phone.
 
