@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
 from app.advanced_rules import AdvancedRules
 from app.advanced_ui import RulesJob, RulesPanel
 from app.application import APP_NAME, configure_application
+from app.clipboard import CLEAR_SECONDS, ClipboardController
 from app.config import PasswordConfig, PasswordMode
 from app.generator import generate_password as generate_password_from_config
 from app.presentation import UI, Preferences
@@ -68,13 +69,13 @@ class SettingsDialog(QDialog):
         layout.addWidget(self.pages, 1)
         self.labels = {}
         self.controls = {}
-        for keys in [("auto_copy",), ("theme", "language")]:
+        for keys in [("auto_copy", "clipboard_clear_seconds"), ("theme", "language")]:
             page = QWidget()
             rows = QVBoxLayout(page)
             rows.setContentsMargins(24, 20, 16, 20)
             heading = QLabel()
             heading.setObjectName("settings_heading")
-            self.labels["general" if keys == ("auto_copy",) else "appearance"] = heading
+            self.labels["general" if "auto_copy" in keys else "appearance"] = heading
             rows.addWidget(heading)
             rows.setSpacing(16)
             for key in keys:
@@ -91,12 +92,14 @@ class SettingsDialog(QDialog):
                 else:
                     control = QComboBox()
                     choices = (
-                        ["system", "light", "dark"]
+                        CLEAR_SECONDS
+                        if key == "clipboard_clear_seconds"
+                        else ["system", "light", "dark"]
                         if key == "theme"
                         else ["system", "pl", "en"]
                     )
                     for value in choices:
-                        control.addItem(value, value)
+                        control.addItem(str(value), value)
                     control.setCurrentIndex(
                         control.findData(owner.preferences.values[key])
                     )
@@ -109,6 +112,11 @@ class SettingsDialog(QDialog):
                 label.setBuddy(control)
                 row.addWidget(control)
                 rows.addLayout(row)
+            if "clipboard_clear_seconds" in keys:
+                hint = QLabel()
+                hint.setWordWrap(True)
+                self.labels["clipboard_clear_hint"] = hint
+                rows.addWidget(hint)
             rows.addStretch()
             self.pages.addWidget(page)
         self.navigation.currentRowChanged.connect(self.pages.setCurrentIndex)
@@ -124,14 +132,21 @@ class SettingsDialog(QDialog):
             label.setText(t(key))
             if key in self.controls:
                 self.controls[key].setAccessibleName(t(key))
-        for key in ["theme", "language"]:
+        for key in ["theme", "language", "clipboard_clear_seconds"]:
             combo = self.controls[key]
             combo.blockSignals(True)
             combo.setCurrentIndex(combo.findData(self.owner.preferences.values[key]))
             for index in range(combo.count()):
                 value = combo.itemData(index)
                 combo.setItemText(
-                    index, {"pl": "Polski", "en": "English"}.get(value, t(value))
+                    index,
+                    (
+                        t("clipboard_off")
+                        if value == 0
+                        else t("clipboard_seconds").replace("{seconds}", str(value))
+                    )
+                    if key == "clipboard_clear_seconds"
+                    else {"pl": "Polski", "en": "English"}.get(value, t(value)),
                 )
             combo.blockSignals(False)
 
@@ -141,6 +156,9 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.preferences = preferences if preferences is not None else Preferences()
         self.t = self.preferences.text
+        self.clipboard_controller = ClipboardController(
+            self.preferences.values["clipboard_clear_seconds"], self
+        )
         self.presets = PresetStore(self.preferences.store)
         self._applying_preset = False
         self._selected_preset = ""
@@ -194,6 +212,7 @@ class MainWindow(QMainWindow):
         result_layout = QHBoxLayout(result)
         result_layout.setContentsMargins(16, 10, 12, 10)
         self.password_field = ResultView()
+        self.password_field.copyRequested.connect(self.copy_password)
         self.password_field.setObjectName("password")
         self.password_field.setReadOnly(True)
         font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
@@ -630,6 +649,8 @@ class MainWindow(QMainWindow):
 
     def set_preference(self, key, value):
         self.preferences.set(key, value)
+        if key == "clipboard_clear_seconds":
+            self.clipboard_controller.set_policy(value)
         if key == "language":
             self.status.hide()
         if key in ["language", "theme"]:
@@ -834,8 +855,8 @@ class MainWindow(QMainWindow):
 
     def copy_password(self):
         if self.password_field.text():
-            QApplication.clipboard().setText(self.password_field.text())
-            self.notify(self.t("copied"))
+            copied = self.clipboard_controller.copy(self.password_field.text())
+            self.notify(self.t("copied" if copied else "clipboard_copy_failed"))
 
     def show_rules_error(self, code):
         self._rules_error_code = code
@@ -909,6 +930,7 @@ class MainWindow(QMainWindow):
             self.show_rules_error("single_result")
 
     def closeEvent(self, event):
+        self.clipboard_controller.dispose()
         self._revision += 1
         for job in self._jobs:
             job.cancelled.set()

@@ -18,12 +18,24 @@ environment.
 * Optional exclusion of similar characters (`0 O o 1 I l`)
 * Larger monospace transcription view with natural character spacing
 * Complete-result copying, wrapping and scrolling for long results
+* Optional clipboard expiry after 30, 60 or 120 seconds (off by default)
 * Light/dark themes and Polish/English interfaces
 
 Generated passwords remain in memory; they are not saved in settings or presets.
 Automatic copying is off by default. Switching modes clears the result without
 generating another password. An unavailable custom word list produces an error
 instead of silently selecting another dictionary.
+
+## v1.5.0 — clipboard expiry
+
+An optional setting clears the app's copied password after 30, 60 or 120 seconds.
+It is off by default. Cleanup checks the copied entry's marker and content;
+copying again starts a new deadline. The displayed result is unaffected.
+
+The app must remain running. On Android, cleanup may wait until you return to
+the app. This does not clear clipboard history or guarantee secure erasure.
+
+[Clipboard behavior, previews and validation](docs/v1.5.0/README.md).
 
 ## v1.4.0 — preset editing
 
@@ -80,7 +92,7 @@ The published Android APK uses the existing distribution signing key.
 [Third-party dependency sources](https://github.com/Franek2009/Password-Generator/releases/latest/download/PasswordGenerator-third-party-sources.tar.gz)
 are provided for license compliance and are not required to run the app.
 
-[Verification details and preset editing gallery](docs/v1.4.0/README.md).
+[Clipboard behavior, settings gallery and validation](docs/v1.5.0/README.md).
 
 ## Screenshots
 
@@ -91,8 +103,11 @@ are public demonstration strings. Android captures use an API-35 emulator.
 | --- | --- | --- |
 | Desktop | ![Desktop, dark theme](docs/v1.4.0/preview/desktop-dark-preset-edit.png) | ![Desktop, light theme](docs/v1.4.0/preview/desktop-light-preset-edit.png) |
 | Android | ![Android, dark theme](docs/v1.4.0/preview/android-dark-preset-menu.png) | ![Android, light theme](docs/v1.4.0/preview/android-light-preset-menu.png) |
+| Desktop — clipboard settings | ![Desktop clipboard settings, dark](docs/v1.5.0/preview/desktop-dark-clipboard.png) | ![Desktop clipboard settings, light](docs/v1.5.0/preview/desktop-light-clipboard.png) |
+| Android — clipboard settings | ![Android clipboard settings, dark](docs/v1.5.0/preview/android-dark-clipboard.png) | ![Android clipboard settings, light](docs/v1.5.0/preview/android-light-clipboard.png) |
 
-[Full v1.4.0 gallery](docs/v1.4.0/README.md#previews) ·
+[Full v1.5.0 settings gallery](docs/v1.5.0/README.md#verified-settings-previews) ·
+[Preset editing gallery](docs/v1.4.0/README.md#previews) ·
 [Archived v1.3.0 gallery](docs/v1.3.0/README.md#verified-previews) ·
 [Archived v1.2.0 gallery](docs/v1.2.0-preview/README.md) ·
 [Archived v1.1.0 gallery](docs/ui-preview/README.md)

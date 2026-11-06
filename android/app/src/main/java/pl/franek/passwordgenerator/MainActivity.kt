@@ -57,6 +57,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        androidx.lifecycle.ViewModelProvider(this)[GeneratorViewModel::class.java].clipboardFocusChanged(hasFocus)
+    }
+
+    override fun onStop() {
+        androidx.lifecycle.ViewModelProvider(this)[GeneratorViewModel::class.java].clipboardFocusChanged(false)
+        super.onStop()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent { PasswordGeneratorApp() }
@@ -437,7 +447,7 @@ private fun Choice(label: String, value: String, choices: List<String>, display:
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
         Box {
-            OutlinedButton(onClick = { expanded = true }, enabled = enabled, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            OutlinedButton(onClick = { expanded = true }, enabled = enabled, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics { contentDescription = label },
                 shape = RoundedCornerShape(6.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface, containerColor = MaterialTheme.colorScheme.surface)) { Text(display(value), Modifier.weight(1f)); Spacer(Modifier.width(8.dp)); DropdownArrow(expanded) }
             DropdownMenu(expanded, { expanded = false }) {
@@ -460,6 +470,11 @@ private fun SettingsScreen(state: UiState, model: GeneratorViewModel, t: (String
                     checkedTrackColor = MaterialTheme.colorScheme.primary, checkedThumbColor = MaterialTheme.colorScheme.background))
         }
     }
+    Choice(t("clipboard_clear_seconds"), state.clipboardClearSeconds.toString(), CLIPBOARD_CLEAR_SECONDS.map { it.toString() },
+        { if(it=="0") t("clipboard_off") else t("clipboard_seconds").replace("{seconds}",it) }) { value ->
+        model.update { it.copy(clipboardClearSeconds=value.toInt()) }
+    }
+    Text(t("clipboard_clear_hint_android"), style = MaterialTheme.typography.bodySmall)
     Text(t("appearance"), style = MaterialTheme.typography.titleMedium)
     Choice(t("theme"), state.theme, listOf("system", "light", "dark"), { t(it) }) { value -> model.update { it.copy(theme = value) } }
     Choice(t("language"), state.language, listOf("system", "pl", "en"), { when(it) { "pl" -> "Polski"; "en" -> "English"; else -> t(it) } }) {
