@@ -31,6 +31,7 @@ class ClipboardUiTest {
             controller.focusChanged(true)
             controller.setPolicy(30)
             assertTrue(controller.copy(raw))
+            assertEquals(raw, clipboard.primaryClip!!.getItemAt(0).text.toString())
             now = 30000
         }
         try {
