@@ -5,7 +5,7 @@ Local pre-release checks on top of v1.4.0, performed on Linux on
 
 | Check | Result |
 | --- | --- |
-| Full Python suite, Python 3.14.8 / PySide6 6.11.2, offscreen | 312 passed |
+| Full Python suite, Python 3.14.10 / PySide6 6.11.2, offscreen | 313 passed, normal process exit |
 | Changed Python files, Ruff lint and format | Passed |
 | Android JVM tests | 27 passed, 0 failures/errors |
 | Android lintDebug | Passed: 0 errors, 11 warnings |
@@ -189,3 +189,22 @@ then rebuilds versioned Linux/Windows packages and the signed APK, verifies all
 53 corresponding-source files and publishes the four existing release assets.
 Signing, licensing, provenance checks and distribution mechanisms are unchanged.
 Application version metadata is derived from the release tag.
+
+## Headless Qt shutdown regression
+
+Release CI initially passed all 312 assertions but exited with SIGSEGV during
+interpreter shutdown on Python 3.14.10. A local reproduction and native backtrace
+isolated Python-created `QMimeData` retained by Qt's headless clipboard. Qt's
+[default clipboard implementation](https://github.com/qt/qtbase/blob/v6.11.2/src/gui/kernel/qplatformclipboard.cpp)
+keeps that data in a C++ global whose destruction can occur after Python bindings
+are finalized. Clearing the isolated test clipboard before interpreter teardown
+avoids that destruction-order failure.
+
+The session fixture in `tests/conftest.py` releases only the **offscreen** test
+clipboard while Python is alive. It does not touch a native desktop clipboard
+or change production cleanup-on-close policy. An isolated subprocess regression
+runs a complete pytest session with custom MIME data and checks successful
+process exit. The full Python 3.14.10 run now passes 313 tests and exits normally.
+The original Python 3.14.8 local run passed 312 tests before this regression was
+added. Application code, Android behavior and package dependency pins are
+unchanged by this test-resource cleanup.

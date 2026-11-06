@@ -315,3 +315,41 @@ def test_qt_timer_checks_deadline_without_manual_focus_event(qtbot):
         assert port.clears == 1
     finally:
         controller.dispose()
+
+
+def test_offscreen_clipboard_session_exits_cleanly(tmp_path):
+    import os
+    import subprocess
+    import sys
+
+    (tmp_path / "conftest.py").write_text(
+        (Path(__file__).parent / "conftest.py").read_text(), encoding="utf-8"
+    )
+    (tmp_path / "test_clipboard_exit.py").write_text(
+        "from PySide6.QtCore import QMimeData\n"
+        "def test_owned_mime(qapp):\n"
+        "    data = QMimeData()\n"
+        '    data.setText("Public-exit-test")\n'
+        '    data.setData("application/x-test-token", b"public-marker")\n'
+        "    qapp.clipboard().setMimeData(data)\n"
+        '    assert qapp.clipboard().text() == "Public-exit-test"\n',
+        encoding="utf-8",
+    )
+    env = os.environ.copy()
+    env.update(QT_QPA_PLATFORM="offscreen", QT_QPA_PLATFORMTHEME="")
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-q",
+            str(tmp_path / "test_clipboard_exit.py"),
+        ],
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "1 passed" in result.stdout
