@@ -180,3 +180,174 @@ def test_generate_action_fits_default_window_without_scrolling(window, qtbot):
         viewport, QPoint(0, window.generate_button.height() - 1)
     )
     assert viewport.rect().contains(bottom)
+
+
+def test_edit_preset_preserves_target_updates_controls_and_result(window, qtbot):
+    preset = window.save_preset("Editable")
+    original_length = window.length_spin.value()
+    window.password_field.setText("memory-only-result")
+    window.length_spin.setValue(32)
+    assert window._selected_preset == preset.id
+    assert "modified" in window.preset_combo.currentText()
+    assert window.update_preset_action.isEnabled()
+    window.length_spin.setValue(original_length)
+    assert not window.update_preset_action.isEnabled()
+    window.length_spin.setValue(32)
+    window.update_preset(preset.id)
+    assert not window.update_preset_action.isEnabled()
+    assert window.password_field.text() == "memory-only-result"
+    assert window.presets.custom[0].config["length"] == 32
+    window.length_spin.setValue(24)
+    window.presets.rename(preset.id, "Renamed")
+    window.refresh_presets(preset.id)
+    assert window.length_spin.value() == 24
+    assert "Renamed (modified)" == window.preset_combo.currentText()
+    assert window.presets.custom[0].config["length"] == 32
+    assert "memory-only-result" not in window.preferences.store.value("presets_v2")
+    window.apply_preset(window.presets.custom[0])
+    assert window.length_spin.value() == 32
+    assert not window.update_preset_action.isEnabled()
+    assert window.password_field.text() == ""
+
+
+def test_edit_builtin_protected_and_cancel_confirmation(window, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+
+    window.apply_preset(window.presets.all[0])
+    assert not window.rename_preset_action.isEnabled()
+    window.length_spin.setValue(32)
+    assert not window.update_preset_action.isEnabled()
+    preset = window.save_preset("Editable")
+    window.length_spin.setValue(24)
+    monkeypatch.setattr(QMessageBox, "exec", lambda *a: QMessageBox.No)
+    window.prompt_update_preset()
+    assert window.presets.custom[0] == preset
+    assert window.length_spin.value() == 24
+    assert window.update_preset_action.isEnabled()
+
+
+def test_update_impossible_rules_and_missing_dictionary_are_atomic(
+    window, qtbot, tmp_path
+):
+    from app.config import PasswordMode
+    from app.wordlist import WordlistError
+
+    preset = window.save_preset("Editable")
+    window.length_spin.setValue(8)
+    restore(
+        window,
+        AdvancedRules(
+            enabled=True,
+            custom_alphabet_enabled=True,
+            custom_alphabet="a",
+            max_identical_run=1,
+        ),
+    )
+    window.update_preset(preset.id)
+    wait(qtbot, window)
+    assert window.presets.custom[0] == preset
+    assert window._selected_preset == preset.id
+    assert window.update_preset_action.isEnabled()
+    assert window.rules_error.isVisible()
+    config = PasswordConfig(
+        mode=PasswordMode.HUMAN, wordlist_path=str(tmp_path / "missing.txt")
+    )
+    with pytest.raises(WordlistError):
+        window.update_preset(preset.id, config=config)
+    assert window.presets.custom[0] == preset
+
+
+def test_rename_dialog_only_changes_name_and_mode_update_clears_result(
+    window, monkeypatch
+):
+    from PySide6.QtWidgets import QInputDialog
+
+    preset = window.save_preset("Editable")
+    window.length_spin.setValue(32)
+    monkeypatch.setattr(QInputDialog, "getText", lambda *a, **kw: ("New name", True))
+    window.prompt_rename_preset()
+    assert window.presets.custom[0].name == "New name"
+    assert window.presets.custom[0].config == preset.config
+    assert window.length_spin.value() == 32
+    window.password_field.setText("memory-only")
+    window.tabs.setCurrentIndex(1)
+    assert window.password_field.text() == ""
+    assert window._selected_preset == preset.id
+    window.update_preset(preset.id)
+    assert window.presets.custom[0].config["mode"] == "human"
+
+
+def test_update_confirmation_uses_literal_name(window, monkeypatch):
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QMessageBox
+
+    preset = window.save_preset("<b>Example</b>")
+    window.length_spin.setValue(32)
+
+    def accept(dialog):
+        assert preset.name in dialog.text()
+        assert dialog.textFormat() == Qt.PlainText
+        return QMessageBox.Yes
+
+    monkeypatch.setattr(QMessageBox, "exec", accept)
+    window.prompt_update_preset()
+    assert window.presets.custom[0].config["length"] == 32
+    assert not window.update_preset_action.isEnabled()
+
+
+def test_configuration_change_cancels_pending_preset_update(window, qtbot):
+    preset = window.save_preset("Editable")
+    window.length_spin.setValue(64)
+    restore(
+        window,
+        AdvancedRules(
+            enabled=True,
+            min_uppercase=13,
+            min_lowercase=13,
+            min_digits=13,
+            min_symbols=13,
+            max_identical_run=1,
+        ),
+    )
+    window.update_preset(preset.id)
+    window.length_spin.setValue(32)
+    wait(qtbot, window)
+    assert window.presets.custom[0] == preset
+    assert window._selected_preset == preset.id
+    assert window.length_spin.value() == 32
+    assert window.update_preset_action.isEnabled()
+
+
+def test_wordlist_changes_mark_preset_after_the_selected_path_changes(
+    window, tmp_path, monkeypatch
+):
+    from PySide6.QtWidgets import QFileDialog
+
+    path = tmp_path / "words.txt"
+    path.write_text("rower\nlas\nzamek\n", encoding="utf-8")
+    window.tabs.setCurrentIndex(1)
+    preset = window.save_preset("Words")
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a: (str(path), ""))
+    window.wordlist_combo.setCurrentIndex(window.wordlist_combo.findData("custom"))
+    assert window._selected_preset == preset.id
+    assert window.update_preset_action.isEnabled()
+    window.reset_wordlist()
+    assert not window.update_preset_action.isEnabled()
+    window.wordlist_combo.setCurrentIndex(window.wordlist_combo.findData("custom"))
+    window.update_preset(preset.id)
+    assert window.presets.custom[0].config["wordlist"] == str(path)
+    assert not window.update_preset_action.isEnabled()
+    window.reset_wordlist()
+    assert window.update_preset_action.isEnabled()
+
+
+def test_custom_settings_choice_explicitly_leaves_edit_target(window):
+    preset = window.save_preset("Editable")
+    window.length_spin.setValue(32)
+    window.select_preset(0)
+    assert window.preset_combo.currentData() == ""
+    assert window._selected_preset == ""
+    assert not window.update_preset_action.isEnabled()
+    assert not window.rename_preset_action.isEnabled()
+    assert window.length_spin.value() == 32
+    assert window.presets.custom[0] == preset

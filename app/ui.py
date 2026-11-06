@@ -36,7 +36,7 @@ from app.application import APP_NAME, configure_application
 from app.config import PasswordConfig, PasswordMode
 from app.generator import generate_password as generate_password_from_config
 from app.presentation import UI, Preferences
-from app.presets import PresetStore, validate_parameters
+from app.presets import PresetStore, parameters, validate_parameters
 from app.result_view import ResultView
 from app.versioning import get_application_version
 from app.wordlist import WordlistError, load_wordlist
@@ -221,6 +221,12 @@ class MainWindow(QMainWindow):
         self.delete_preset_action = QAction(self)
         self.menu.insertAction(self.about_action, self.delete_preset_action)
         self.delete_preset_action.triggered.connect(self.prompt_delete_preset)
+        self.update_preset_action = QAction(self)
+        self.menu.insertAction(self.about_action, self.update_preset_action)
+        self.update_preset_action.triggered.connect(self.prompt_update_preset)
+        self.rename_preset_action = QAction(self)
+        self.menu.insertAction(self.about_action, self.rename_preset_action)
+        self.rename_preset_action.triggered.connect(self.prompt_rename_preset)
         self.manager_settings = QWidget()
         manager = QVBoxLayout(self.manager_settings)
         manager.setContentsMargins(0, 0, 0, 0)
@@ -344,9 +350,9 @@ class MainWindow(QMainWindow):
             self.rules_error.hide()
             self._rules_error_code = None
         if not self._applying_preset:
-            self._selected_preset = ""
-            self.preset_combo.setCurrentIndex(0)
-            self.delete_preset_action.setEnabled(False)
+            if self._selected_preset not in {p.id for p in self.presets.custom}:
+                self._selected_preset = ""
+            self.refresh_presets()
 
     def refresh_presets(self, identity=None):
         identity = self._selected_preset if identity is None else identity
@@ -356,9 +362,21 @@ class MainWindow(QMainWindow):
             self.preset_combo.addItem(self.t(p.name) if p.builtin else p.name, p.id)
         self.preset_combo.setCurrentIndex(max(0, self.preset_combo.findData(identity)))
         self._selected_preset = self.preset_combo.currentData()
-        self.delete_preset_action.setEnabled(
-            identity in {p.id for p in self.presets.custom}
-        )
+        custom = next((p for p in self.presets.custom if p.id == identity), None)
+        modified = False
+        if custom:
+            try:
+                modified = parameters(self.current_config()) != custom.config
+            except ValueError:
+                modified = True
+            if modified:
+                self.preset_combo.setItemText(
+                    self.preset_combo.currentIndex(),
+                    f"{custom.name} ({self.t('preset_modified')})",
+                )
+        self.delete_preset_action.setEnabled(bool(custom) and not self.working)
+        self.rename_preset_action.setEnabled(bool(custom) and not self.working)
+        self.update_preset_action.setEnabled(modified and not self.working)
 
     def current_config(self):
         rules = self.rules_panel.rules()
@@ -391,6 +409,9 @@ class MainWindow(QMainWindow):
         preset = next((p for p in self.presets.all if p.id == identity), None)
         if preset:
             self.apply_preset(preset)
+        else:
+            self._selected_preset = ""
+            self.refresh_presets()
 
     def apply_preset(self, preset, checked=False):
         try:
@@ -485,6 +506,64 @@ class MainWindow(QMainWindow):
             except ValueError as error:
                 self.notify(self.t(str(error)))
 
+    def update_preset(self, identity, checked=False, config=None):
+        config = config or self.current_config()
+        if config.mode == PasswordMode.HUMAN and config.wordlist_path:
+            load_wordlist(config.wordlist_path)
+        if (
+            config.mode == PasswordMode.MANAGER
+            and config.advanced.enabled
+            and not checked
+        ):
+            self.start_rules_job(
+                config,
+                lambda *_: self.update_preset(identity, checked=True, config=config),
+            )
+            return None
+        preset = self.presets.update(identity, config)
+        self.refresh_presets(identity)
+        return preset
+
+    def prompt_update_preset(self):
+        preset = next(
+            (p for p in self.presets.custom if p.id == self._selected_preset), None
+        )
+        if preset is None:
+            return
+        confirmation = QMessageBox(self)
+        confirmation.setWindowTitle(self.t("preset_update"))
+        confirmation.setTextFormat(Qt.PlainText)
+        confirmation.setText(
+            self.t("preset_confirm_update").replace("{name}", preset.name)
+        )
+        confirmation.setIcon(QMessageBox.Question)
+        confirmation.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        confirmation.setDefaultButton(QMessageBox.No)
+        if confirmation.exec() != QMessageBox.Yes:
+            return
+        try:
+            self.update_preset(preset.id)
+        except WordlistError as error:
+            self.notify(self.t(error.code))
+        except ValueError as error:
+            self.notify(self.t(str(error)))
+
+    def prompt_rename_preset(self):
+        preset = next(
+            (p for p in self.presets.custom if p.id == self._selected_preset), None
+        )
+        if preset is None:
+            return
+        name, ok = QInputDialog.getText(
+            self, self.t("preset_rename"), self.t("preset_name"), text=preset.name
+        )
+        if ok:
+            try:
+                self.presets.rename(preset.id, name)
+                self.refresh_presets(preset.id)
+            except ValueError as error:
+                self.notify(self.t(str(error)))
+
     def prompt_delete_preset(self):
         identity = self.preset_combo.currentData()
         if identity not in {p.id for p in self.presets.custom}:
@@ -569,6 +648,8 @@ class MainWindow(QMainWindow):
         self.exclude_similar_checkbox.setText(t("exclude_similar"))
         self.save_preset_action.setText(t("preset_save"))
         self.delete_preset_action.setText(t("preset_delete"))
+        self.update_preset_action.setText(t("preset_update"))
+        self.rename_preset_action.setText(t("preset_rename"))
         self.refresh_presets()
         self.rules_panel.retranslate(t)
         if self._rules_error_code:
@@ -714,7 +795,6 @@ class MainWindow(QMainWindow):
         )
 
     def reset_wordlist(self):
-        self.mark_custom()
         self.custom_wordlist_path = None
         self.preferences.set("wordlist", "")
         self.wordlist_combo.blockSignals(True)
@@ -722,6 +802,7 @@ class MainWindow(QMainWindow):
             self.wordlist_combo.removeItem(1)
         self.wordlist_combo.setCurrentIndex(0)
         self.wordlist_combo.blockSignals(False)
+        self.mark_custom()
 
     def select_wordlist(self, index):
         self.mark_custom()
@@ -749,6 +830,7 @@ class MainWindow(QMainWindow):
         self.wordlist_combo.blockSignals(True)
         self.wordlist_combo.setCurrentIndex(1 if self.custom_wordlist_path else 0)
         self.wordlist_combo.blockSignals(False)
+        self.refresh_presets()
 
     def copy_password(self):
         if self.password_field.text():
@@ -786,6 +868,8 @@ class MainWindow(QMainWindow):
         self.save_preset_action.setEnabled(False)
         self.preset_combo.setEnabled(False)
         self.delete_preset_action.setEnabled(False)
+        self.update_preset_action.setEnabled(False)
+        self.rename_preset_action.setEnabled(False)
         job = RulesJob(config, generate, self)
         self._jobs.append(job)
 

@@ -90,6 +90,149 @@ class AdvancedUiTest {
             assertNotNull(pending!!.message)
         }
     }
+    @Test fun editPresetFromMainViewRenameAndRestart() {
+        reset()
+        idle { model.savePreset("Editable") }
+        val id=model.selectedPreset
+        val original=model.state.length
+        idle { model.update { it.copy(length=32,password="memory-only-result") } }
+        idle { assertEquals(id,model.selectedPreset);assertTrue(model.presetModified) }
+        rule.onNodeWithText("Editable (modified)").performScrollTo().performClick()
+        rule.onNodeWithText("Update preset…").performClick()
+        rule.onNodeWithText("Close").performClick()
+        idle { assertEquals(original,model.customPresets.single().config["length"]) }
+        rule.onNodeWithText("Editable (modified)").performClick()
+        rule.onNodeWithText("Update preset…").performClick()
+        // Confirmation retains the exact target name.
+        rule.onNodeWithText("Replace the saved settings of preset “Editable” with the current generator settings?").assertExists()
+        rule.onAllNodesWithText("Update preset…").onLast().performClick()
+        rule.waitUntil(15000) { !model.working && !model.presetModified }
+        idle {
+            assertEquals(32,model.customPresets.single().config["length"])
+            assertEquals("memory-only-result",model.state.password)
+            model.update { it.copy(length=24) }
+        }
+        rule.onNodeWithText("Editable (modified)").performClick()
+        rule.onNodeWithText("Rename preset…").performClick()
+        rule.onNodeWithText("Preset name").performTextReplacement("Renamed")
+        rule.onAllNodesWithText("Rename preset…").onLast().performClick()
+        rule.waitUntil(15000) { !model.working && model.customPresets.single().name=="Renamed" }
+        idle {
+            assertEquals(24,model.state.length)
+            assertTrue(model.presetModified)
+            assertEquals(32,model.customPresets.single().config["length"])
+            val restarted=GeneratorViewModel(rule.activity.application as Application)
+            assertEquals(model.customPresets,restarted.customPresets)
+            assertEquals("",restarted.selectedPreset)
+            assertEquals("",restarted.state.password)
+            assertFalse(rule.activity.getSharedPreferences("generator",Context.MODE_PRIVATE).all.toString().contains("memory-only-result"))
+            model.update { it.copy(mode=PasswordMode.HUMAN) }
+            assertEquals("",model.state.password)
+            model.updatePreset(id)
+        }
+        idle { assertEquals("human",model.customPresets.single().config["mode"]) }
+    }
+
+    @Test fun invalidPresetEditsPreserveSavedDataAndCancelPendingUpdate() {
+        reset()
+        idle { model.savePreset("Editable") }
+        val id=model.selectedPreset
+        val saved=model.customPresets.single()
+        idle { model.update { it.copy(length=8,advanced=unique.copy(customAlphabet="a")) };model.updatePreset(id) }
+        idle {
+            assertEquals(saved,model.customPresets.single())
+            assertEquals(id,model.selectedPreset)
+            assertTrue(model.presetModified)
+            assertEquals("no_valid_password",model.message)
+            model.renamePreset(id,"Standard")
+            assertEquals(saved,model.customPresets.single())
+            model.update { it.copy(mode=PasswordMode.HUMAN,wordlist="content://missing-provider/list") }
+            model.updatePreset(id)
+        }
+        idle {
+            assertEquals(saved,model.customPresets.single())
+            model.update { it.copy(mode=PasswordMode.MANAGER,length=64,advanced=AdvancedRules(enabled=true,
+                minUppercase=13,minLowercase=13,minDigits=13,minSymbols=13,maxIdenticalRun=1)) }
+            model.updatePreset(id)
+            model.update { it.copy(length=32) }
+        }
+        idle {
+            assertEquals(saved,model.customPresets.single())
+            assertEquals(id,model.selectedPreset)
+        }
+    }
+
+    @Test fun failedPresetWritesRestoreSavedCollectionAndPreferenceCache() {
+        val real=rule.activity.getSharedPreferences("preset-edit-failure-test",Context.MODE_PRIVATE)
+        val saved=Presets.create("Saved",UiState(),emptyList())
+        val original=Presets.encode(listOf(saved))
+        real.edit().clear().putString("presets_v2",original).commit()
+        var failNext=true
+        val failing=object:android.content.SharedPreferences by real {
+            override fun edit():android.content.SharedPreferences.Editor {
+                val editor=real.edit()
+                return object:android.content.SharedPreferences.Editor by editor {
+                    override fun putString(key:String?,value:String?):android.content.SharedPreferences.Editor {
+                        editor.putString(key,value);return this
+                    }
+                    override fun commit():Boolean {
+                        val result=editor.commit()
+                        if(failNext) { failNext=false;return false }
+                        return result
+                    }
+                }
+            }
+        }
+        val app=object:Application() {
+            override fun getSharedPreferences(name:String?,mode:Int)=failing
+        }
+        lateinit var edited:GeneratorViewModel
+        rule.runOnIdle { edited=GeneratorViewModel(app);edited.renamePreset(saved.id,"Other") }
+        rule.waitUntil(15000) { !edited.working }
+        rule.runOnIdle {
+            assertEquals("settings_write",edited.message)
+            assertEquals(listOf(saved),edited.customPresets)
+            assertEquals(original,real.getString("presets_v2",null))
+            assertEquals(listOf(saved),GeneratorViewModel(app).customPresets)
+            failNext=true
+            edited.updatePreset(saved.id)
+        }
+        rule.waitUntil(15000) { !edited.working }
+        rule.runOnIdle {
+            assertEquals(listOf(saved),edited.customPresets)
+            assertEquals(original,real.getString("presets_v2",null))
+        }
+        real.edit().clear().commit()
+    }
+
+    @Test fun capturePresetEditingInBothThemes() {
+        reset()
+        idle { model.update { it.copy(length=8,advanced=unique) };model.generate() }
+        idle { model.savePreset("Example") }
+        idle { model.update { it.copy(length=10) } }
+        // System UI clipboard overlays from earlier copy tests must finish before capture.
+        android.os.SystemClock.sleep(7000)
+        for(theme in listOf("light","dark")) {
+            idle { model.update { it.copy(theme=theme) } }
+            rule.onNodeWithText("Example (modified)").performScrollTo().performClick()
+            rule.onNodeWithText("Update preset…").assertExists()
+            screenshotEditing("android-$theme-preset-menu.png")
+            rule.onNodeWithText("Update preset…").performClick()
+            rule.onNodeWithText("Replace the saved settings of preset “Example” with the current generator settings?").assertExists()
+            screenshotEditing("android-$theme-preset-confirm.png")
+            rule.onNodeWithText("Close").performClick()
+        }
+    }
+
+    private fun screenshotEditing(name:String) {
+        val file=File(rule.activity.getExternalFilesDir(null),"v140-preview/$name")
+        file.parentFile!!.mkdirs()
+        file.outputStream().use { output ->
+            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+                .compress(Bitmap.CompressFormat.PNG,100,output)
+        }
+    }
+
     private var pending:GeneratorViewModel?=null
 
     @Test fun configurationEditCancelsPendingResultAndPassphraseIgnoresRules() {

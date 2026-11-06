@@ -64,6 +64,18 @@ object Presets {
         require(key(name) !in reserved && existing.none { key(it.name)==key(name) }) { "preset_duplicate" }
         return Preset("custom-${UUID.randomUUID()}",name,validate(parameters(state)))
     }
+    fun update(id:String,state:UiState,existing:List<Preset>):Preset {
+        val preset=existing.singleOrNull { it.id==id && !it.builtin }
+            ?: throw IllegalArgumentException("preset_invalid")
+        return preset.copy(config=validate(parameters(state)))
+    }
+    fun rename(id:String,raw:String,existing:List<Preset>):Preset {
+        val preset=existing.singleOrNull { it.id==id && !it.builtin }
+            ?: throw IllegalArgumentException("preset_invalid")
+        val name=name(raw)
+        require(key(name) !in reserved && existing.none { it.id!=id && key(it.name)==key(name) }) { "preset_duplicate" }
+        return preset.copy(name=name)
+    }
     fun apply(state:UiState,preset:Preset):UiState {
         val data=validate(preset.config)
         @Suppress("UNCHECKED_CAST")

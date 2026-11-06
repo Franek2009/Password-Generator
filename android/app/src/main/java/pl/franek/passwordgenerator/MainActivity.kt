@@ -272,13 +272,16 @@ private fun PresetControls(state: UiState, model: GeneratorViewModel, t: (String
     var expanded by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf(false) }
+    var updating by remember { mutableStateOf(false) }
+    var renaming by remember { mutableStateOf(false) }
     // Deliberately not saveable: a partially entered name need not survive process death.
     var name by remember { mutableStateOf("") }
     val selected = model.presets.find { it.id == model.selectedPreset }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.weight(1f)) {
             TextButton(onClick = { expanded = true }, enabled = !model.working) {
-                Text(selected?.let { if (it.builtin) t(it.name) else it.name } ?: t("preset_custom"), Modifier.weight(1f), maxLines = 2)
+                Text(selected?.let { if (it.builtin) t(it.name) else it.name +
+                    if(model.presetModified) " (${t("preset_modified")})" else "" } ?: t("preset_custom"), Modifier.weight(1f), maxLines = 2)
                 Spacer(Modifier.width(8.dp))
                 DropdownArrow(expanded)
             }
@@ -290,6 +293,12 @@ private fun PresetControls(state: UiState, model: GeneratorViewModel, t: (String
                 }
                 HorizontalDivider()
                 DropdownMenuItem(text = { Text(t("preset_save")) }, onClick = { expanded = false; name = ""; saving = true })
+                if (selected != null && !selected.builtin) {
+                    DropdownMenuItem(text = { Text(t("preset_update")) }, enabled = model.presetModified,
+                        onClick = { expanded = false; updating = true })
+                    DropdownMenuItem(text = { Text(t("preset_rename")) },
+                        onClick = { expanded = false; name = selected.name; renaming = true })
+                }
                 if (selected != null && !selected.builtin) DropdownMenuItem(text = { Text(t("preset_delete")) }, onClick = { expanded = false; deleting = true })
             }
         }
@@ -303,6 +312,18 @@ private fun PresetControls(state: UiState, model: GeneratorViewModel, t: (String
         text = { OutlinedTextField(name, { name = it }, label = { Text(t("preset_name")) }, singleLine = true) },
         confirmButton = { TextButton(onClick = { model.savePreset(name); saving = false }) { Text(t("preset_save")) } },
         dismissButton = { TextButton(onClick = { saving = false }) { Text(t("close")) } })
+    if (updating) AlertDialog(onDismissRequest = { updating = false }, title = { Text(t("preset_update")) },
+        text = { Text(t("preset_confirm_update").replace("{name}", selected?.name ?: "")) },
+        confirmButton = { TextButton(enabled = !model.working, onClick = {
+            selected?.let { model.updatePreset(it.id) }; updating = false
+        }) { Text(t("preset_update")) } },
+        dismissButton = { TextButton(onClick = { updating = false }) { Text(t("close")) } })
+    if (renaming) AlertDialog(onDismissRequest = { renaming = false }, title = { Text(t("preset_rename")) },
+        text = { OutlinedTextField(name, { name = it }, label = { Text(t("preset_name")) }, singleLine = true) },
+        confirmButton = { TextButton(enabled = !model.working, onClick = {
+            selected?.let { model.renamePreset(it.id, name) }; renaming = false
+        }) { Text(t("preset_rename")) } },
+        dismissButton = { TextButton(onClick = { renaming = false }) { Text(t("close")) } })
     if (deleting) AlertDialog(onDismissRequest = { deleting = false }, title = { Text(t("preset_delete")) },
         text = { Text(t("preset_confirm_delete")) },
         confirmButton = { TextButton(onClick = { selected?.let { model.deletePreset(it.id) }; deleting = false }) { Text(t("preset_delete")) } },

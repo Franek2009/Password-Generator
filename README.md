@@ -46,6 +46,17 @@ four-character grouping; copying always preserves the exact original.
 [Generation rules and algorithm](docs/v1.3.0/algorithm.md) ·
 [Preset compatibility](docs/v1.3.0/presets.md)
 
+## Upcoming v1.4.0 — preset editing
+
+Custom presets can now be renamed or updated from the main generator view.
+After changing settings, the preset shows **modified**. Choose **Update preset…**
+and confirm its name to replace the saved configuration, or **Save preset…**
+to create another preset. **Rename preset…** changes only its name. Built-in
+presets remain protected. These changes are in development; the downloads below
+still provide the latest published release, v1.3.0.
+
+[Preset editing and verification](docs/v1.4.0/README.md).
+
 ## Android
 
 The native Android project is located in [`android/`](android/). It supports
