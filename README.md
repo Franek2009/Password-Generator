@@ -14,7 +14,7 @@ environment.
 * Cryptographic randomness: Python `secrets` and Android `SecureRandom`
 * Configurable length, character groups, word count and separators
 * Built-in Polish word list and custom UTF-8 word lists
-* Built-in presets and named custom presets, saved between sessions
+* Built-in presets and named custom presets, with updating and renaming
 * Optional exclusion of similar characters (`0 O o 1 I l`)
 * Larger monospace transcription view with natural character spacing
 * Complete-result copying, wrapping and scrolling for long results
@@ -24,6 +24,16 @@ Generated passwords remain in memory; they are not saved in settings or presets.
 Automatic copying is off by default. Switching modes clears the result without
 generating another password. An unavailable custom word list produces an error
 instead of silently selecting another dictionary.
+
+## v1.4.0 — preset editing
+
+Custom presets can now be renamed or updated from the main generator view.
+After changing settings, the preset shows **modified**. Choose **Update preset…**
+and confirm its name to replace the saved configuration, or **Save preset…**
+to create another preset. **Rename preset…** changes only its name. Built-in
+presets remain protected. Existing presets remain compatible.
+
+[Preset editing and verification](docs/v1.4.0/README.md).
 
 ## v1.3.0 — Advanced generation
 
@@ -45,17 +55,6 @@ four-character grouping; copying always preserves the exact original.
 
 [Generation rules and algorithm](docs/v1.3.0/algorithm.md) ·
 [Preset compatibility](docs/v1.3.0/presets.md)
-
-## Upcoming v1.4.0 — preset editing
-
-Custom presets can now be renamed or updated from the main generator view.
-After changing settings, the preset shows **modified**. Choose **Update preset…**
-and confirm its name to replace the saved configuration, or **Save preset…**
-to create another preset. **Rename preset…** changes only its name. Built-in
-presets remain protected. These changes are in development; the downloads below
-still provide the latest published release, v1.3.0.
-
-[Preset editing and verification](docs/v1.4.0/README.md).
 
 ## Android
 
@@ -81,7 +80,7 @@ The published Android APK uses the existing distribution signing key.
 [Third-party dependency sources](https://github.com/Franek2009/Password-Generator/releases/latest/download/PasswordGenerator-third-party-sources.tar.gz)
 are provided for license compliance and are not required to run the app.
 
-[Development builds and verification details](docs/v1.3.0/README.md).
+[Verification details and preset editing gallery](docs/v1.4.0/README.md).
 
 ## Screenshots
 
@@ -90,10 +89,11 @@ are public demonstration strings. Android captures use an API-35 emulator.
 
 | Platform | Dark theme | Light theme |
 | --- | --- | --- |
-| Desktop | ![Desktop, dark theme](docs/v1.3.0/preview/desktop-dark-narrow.png) | ![Desktop, light theme](docs/v1.3.0/preview/desktop-light-narrow.png) |
-| Android | ![Android, dark theme](docs/v1.3.0/preview/android-dark-result.png) | ![Android, light theme](docs/v1.3.0/preview/android-light-result.png) |
+| Desktop | ![Desktop, dark theme](docs/v1.4.0/preview/desktop-dark-preset-edit.png) | ![Desktop, light theme](docs/v1.4.0/preview/desktop-light-preset-edit.png) |
+| Android | ![Android, dark theme](docs/v1.4.0/preview/android-dark-preset-menu.png) | ![Android, light theme](docs/v1.4.0/preview/android-light-preset-menu.png) |
 
-[Full gallery](docs/v1.3.0/README.md#verified-previews) ·
+[Full v1.4.0 gallery](docs/v1.4.0/README.md#previews) ·
+[Archived v1.3.0 gallery](docs/v1.3.0/README.md#verified-previews) ·
 [Archived v1.2.0 gallery](docs/v1.2.0-preview/README.md) ·
 [Archived v1.1.0 gallery](docs/ui-preview/README.md)
 

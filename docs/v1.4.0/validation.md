@@ -126,3 +126,22 @@ belongs to the owner and was not edited; its SHA-256 remains
 
 The new documentation, preview script and eight screenshots appear in the
 untracked inventory above and are not included in the tracked-file diff stat.
+
+## Release acceptance
+
+The owner confirmed that the application works and authorized publication of
+v1.4.0 on 2026-11-06. Local validation above remains a historical record of what
+was run locally. Subsequent CI on the implementation commit passed:
+
+- [Python tests](https://github.com/Franek2009/Password-Generator/actions/runs/42245272593).
+- [Android JVM tests, lint and APK build](https://github.com/Franek2009/Password-Generator/actions/runs/42245272573).
+- [Android UI on API 26 and API 35](https://github.com/Franek2009/Password-Generator/actions/runs/42245272639).
+- [Windows and Linux packages](https://github.com/Franek2009/Password-Generator/actions/runs/42245303243).
+
+[PR #6](https://github.com/Franek2009/Password-Generator/pull/6) was merged as
+`a4b3809a4cfd14081e8b8e25a9b2d99abda6651b`. Release preparation changes only
+README/gallery references and release documentation; the application code remains
+the tested implementation. The tag-triggered release workflow reruns tests,
+builds versioned packages and the signed APK, verifies corresponding sources,
+and publishes the existing four assets. No version is hardcoded in application
+metadata, and signing, licensing and distribution mechanisms are unchanged.

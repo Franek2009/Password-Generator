@@ -1,4 +1,4 @@
-# v1.4.0 — preset editing (in development)
+# v1.4.0 — preset editing
 
 Select a custom preset, adjust the generator controls, and choose **Update
 preset…** from the existing menu. Confirm the named replacement to save the
@@ -55,5 +55,7 @@ Android captures are produced by
 
 ## Verification
 
-See [validation results and change inventory](validation.md). The main release
-links continue pointing to published v1.3.0.
+See [validation results and change inventory](validation.md) and
+[release acceptance](validation.md#release-acceptance).
+
+[Release notes and downloads](../releases/v1.4.0.md).
