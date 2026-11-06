@@ -1,14 +1,9 @@
 package pl.franek.passwordgenerator
 
 import android.app.Application
-import android.content.ClipData
-import android.content.ClipDescription
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
-import android.os.PersistableBundle
 import android.provider.OpenableColumns
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +34,7 @@ class SharedUi(context: Context) {
 }
 
 data class UiState(
+    val clipboardClearSeconds: Int = 0,
     val excludeSimilar: Boolean = false, val transcription: Boolean = false,
     val advanced: AdvancedRules = AdvancedRules(),
     val mode: PasswordMode = PasswordMode.MANAGER,
@@ -53,6 +49,8 @@ data class UiState(
 class GeneratorViewModel(application: Application) : AndroidViewModel(application) {
     private val preferences = application.getSharedPreferences("generator", Context.MODE_PRIVATE)
     private val generator = PasswordGenerator()
+    private val clipboardDelegate = lazy { AndroidClipboardController(application) }
+    private val clipboardController by clipboardDelegate
     private val settingsWriteLock=Mutex()
     @Volatile private var revision = 0L
     private val presetVersion = if(preferences.contains("presets_v2")) 2 else 1
@@ -208,7 +206,7 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
                     withContext(Dispatchers.IO) { readWords(Uri.parse(next.wordlist)) }
                 }
                 if (requestRevision == revision) {
-                    update { next.copy(language = it.language, theme = it.theme, autoCopy = it.autoCopy, transcription = it.transcription) }
+                    update { next.copy(language = it.language, theme = it.theme, autoCopy = it.autoCopy, transcription = it.transcription, clipboardClearSeconds = it.clipboardClearSeconds) }
                     revision++ // Also invalidate pending work when reapplying an identical preset.
                     selectedPreset = id
                 }
@@ -237,6 +235,7 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
         fun choice(key: String, default: String, options: List<String>) = (values[key] as? String)?.takeIf { it in options } ?: default
         return UiState(
             advanced = readAdvanced(),
+            clipboardClearSeconds = (values["clipboard_clear_seconds"] as? Int)?.takeIf { it in CLIPBOARD_CLEAR_SECONDS } ?: 0,
             excludeSimilar = bool("excludeSimilar", false), transcription = bool("transcription", false),
             mode = if (values["mode"] == "human") PasswordMode.HUMAN else PasswordMode.MANAGER,
             length = number("length", 20, 8..64), words = number("words", 3, 2..8),
@@ -252,7 +251,9 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun update(transform: (UiState) -> UiState) {
-        val next = transform(state)
+        val candidate = transform(state)
+        val next = candidate.copy(clipboardClearSeconds=candidate.clipboardClearSeconds.takeIf { it in CLIPBOARD_CLEAR_SECONDS } ?: 0)
+        if (clipboardDelegate.isInitialized()) clipboardController.setPolicy(next.clipboardClearSeconds)
         if (configFor(next) != configFor(state) || next.advanced != state.advanced || next.wordlist != state.wordlist) {
             revision++
             if(customPresets.none { it.id==selectedPreset }) selectedPreset = ""
@@ -260,6 +261,7 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
         }
         state = if (next.mode != state.mode) next.copy(password = "") else next
         preferences.edit().apply {
+            putInt("clipboard_clear_seconds", state.clipboardClearSeconds)
             putBoolean("excludeSimilar", state.excludeSimilar); putBoolean("transcription", state.transcription)
             val storedRules=runCatching { Presets.jsonObject(state.advanced.toData()).toString() }.getOrElse {
                 if(!state.advanced.enabled) runCatching {
@@ -371,16 +373,21 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    override fun onCleared() { revision++; super.onCleared() }
+    override fun onCleared() {
+        revision++
+        if (clipboardDelegate.isInitialized()) clipboardController.dispose()
+        super.onCleared()
+    }
+
+    fun clipboardFocusChanged(focused: Boolean) {
+        clipboardController.focusChanged(focused)
+        clipboardController.setPolicy(state.clipboardClearSeconds)
+    }
 
     fun copy() {
         if (state.password.isEmpty()) return
-        val clip = ClipData.newPlainText("Password Generator", state.password)
-        if (Build.VERSION.SDK_INT >= 33) clip.description.extras = PersistableBundle().apply {
-            putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
-        }
-        (getApplication<Application>().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(clip)
-        message = "copied"
+        clipboardController.setPolicy(state.clipboardClearSeconds)
+        message = if (clipboardController.copy(state.password)) "copied" else "clipboard_copy_failed"
     }
 
     private fun errorCode(error: Exception) = when (error) {

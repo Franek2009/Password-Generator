@@ -97,7 +97,13 @@
       "preset_update": "Update preset…",
       "preset_rename": "Rename preset…",
       "preset_modified": "modified",
-      "preset_confirm_update": "Replace the saved settings of preset “{name}” with the current generator settings?"
+      "preset_confirm_update": "Replace the saved settings of preset “{name}” with the current generator settings?",
+      "clipboard_clear_seconds": "Clear copied password",
+      "clipboard_off": "Off",
+      "clipboard_seconds": "{seconds} seconds",
+      "clipboard_clear_hint": "Requires the app to remain running. A new duration applies to the next copy. Clipboard history is not cleared.",
+      "clipboard_clear_hint_android": "Requires the app to remain running. In the background, clearing may wait until you return. A new duration applies to the next copy. Clipboard history is not cleared.",
+      "clipboard_copy_failed": "Could not copy to the clipboard."
     },
     "pl": {
       "random": "Losowe hasło",
@@ -196,7 +202,13 @@
       "preset_update": "Zaktualizuj preset…",
       "preset_rename": "Zmień nazwę…",
       "preset_modified": "zmodyfikowany",
-      "preset_confirm_update": "Zastąpić zapisane ustawienia presetu „{name}” bieżącymi ustawieniami generatora?"
+      "preset_confirm_update": "Zastąpić zapisane ustawienia presetu „{name}” bieżącymi ustawieniami generatora?",
+      "clipboard_clear_seconds": "Czyść skopiowane hasło",
+      "clipboard_off": "Wyłączone",
+      "clipboard_seconds": "{seconds} sekund",
+      "clipboard_clear_hint": "Wymaga działającej aplikacji. Nowy czas dotyczy następnego kopiowania. Historia schowka nie jest czyszczona.",
+      "clipboard_clear_hint_android": "Wymaga działającej aplikacji. W tle czyszczenie może poczekać na powrót do aplikacji. Nowy czas dotyczy następnego kopiowania. Historia schowka nie jest czyszczona.",
+      "clipboard_copy_failed": "Nie można skopiować do schowka."
     }
   },
   "palettes": {

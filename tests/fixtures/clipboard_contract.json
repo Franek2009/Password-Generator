@@ -1,0 +1,525 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "name": "off by default",
+      "steps": [
+        {
+          "action": "copy",
+          "value": "Alpha"
+        },
+        {
+          "action": "advance",
+          "value": 120000
+        },
+        {
+          "action": "tick",
+          "value": null
+        }
+      ],
+      "text": "Alpha",
+      "pending": false,
+      "clears": 0
+    },
+    {
+      "name": "before deadline",
+      "steps": [
+        {
+          "action": "policy",
+          "value": 30
+        },
+        {
+          "action": "copy",
+          "value": "Alpha"
+        },
+        {
+          "action": "advance",
+          "value": 29999
+        },
+        {
+          "action": "tick",
+          "value": null
+        }
+      ],
+      "text": "Alpha",
+      "pending": true,
+      "clears": 0
+    },
+    {
+      "name": "at deadline",
+      "steps": [
+        {
+          "action": "policy",
+          "value": 30
+        },
+        {
+          "action": "copy",
+          "value": "Alpha"
+        },
+        {
+          "action": "advance",
+          "value": 30000
+        },
+        {
+          "action": "tick",
+          "value": null
+        }
+      ],
+      "text": null,
+      "pending": false,
+      "clears": 1
+    },
+    {
+      "name": "latest copy has new deadline",
+      "steps": [
+        {
+          "action": "policy",
+          "value": 30
+        },
+        {
+          "action": "copy",
+          "value": "Alpha"
+        },
+        {
+          "action": "advance",
+          "value": 20000
+        },
+        {
+          "action": "copy",
+          "value": "Beta"
+        },
+        {
+          "action": "advance",
+          "value": 10000
+        },
+        {
+          "action": "tick",
+          "value": null
+        }
+      ],
+      "text": "Beta",
+      "pending": true,
+      "clears": 0
+    },
+    {
+      "name": "latest copy expires",
+      "steps": [
+        {
+          "action": "policy",
+          "value": 30
+        },
+        {
+          "action": "copy",
+          "value": "Alpha"
+        },
+        {
+          "action": "advance",
+          "value": 20000
+        },
+        {
+          "action": "copy",
+          "value": "Beta"
+        },
+        {
+          "action": "advance",
+          "value": 30000
+        },
+        {
+          "action": "tick",
+          "value": null
+        }
+      ],
+      "text": null,
+      "pending": false,
+      "clears": 1
+    },
+    {
+      "name": "identical foreign text",
+      "steps": [
+        {
+          "action": "policy",
+          "value": 30
+        },
+        {
+          "action": "copy",
+          "value": "Alpha"
+        },
+        {
+          "action": "foreign",
+          "value": "Alpha"
+        },
+        {
+          "action": "changed",
+          "value": null
+        },
+        {
+          "action": "advance",
+          "value": 30000
+        },
+        {
+          "action": "tick",
+          "value": null
+        }
+      ],
+      "text": "Alpha",
+      "pending": false,
+      "clears": 0
+    },
+    {
+      "name": "changed content retains token",
+      "steps": [
+        {
+          "action": "policy",
+          "value": 30
+        },
+        {
+          "action": "copy",
+          "value": "Alpha"
+        },
+        {
+          "action": "mutate",
+          "value": "Foreign"
+        },
+        {
+          "action": "changed",
+          "value": null
+        },
+        {
+          "action": "advance",
+          "value": 30000
+        },
+        {
+          "action": "tick",
+          "value": null
+        }
+      ],
+      "text": "Foreign",
+      "pending": false,
+      "clears": 0
+    },
+    {
+      "name": "unavailable when expired",
+      "steps": [
+        {
+          "action": "policy",
+          "value": 30
+        },
+        {
+          "action": "copy",
+          "value": "Alpha"
+        },
+        {
+          "action": "unavailable",
+          "value": true
+        },
+        {
+          "action": "advance",
+          "value": 90000
+        },
+        {
+          "action": "tick",
+          "value": null
+        }
+      ],
+      "text": "Alpha",
+      "pending": true,
+      "clears": 0
+    },
+    {
+      "name": "return after deadline",
+      "steps": [
+        {
+          "action": "policy",
+          "value": 30
+        },
+        {
+          "action": "copy",
+          "value": "Alpha"
+        },
+        {
+          "action": "unavailable",
+          "value": true
+        },
+        {
+          "action": "advance",
+          "value": 90000
+        },
+        {
+          "action": "tick",
+          "value": null
+        },
+        {
+          "action": "unavailable",
+          "value": false
+        },
+        {
+          "action": "tick",
+          "value": null
+        }
+      ],
+      "text": null,
+      "pending": false,
+      "clears": 1
+    },
+    {
+      "name": "foreign while in background",
+      "steps": [
+        {
+          "action": "policy",
+          "value": 30
+        },
+        {
+          "action": "copy",
+          "value": "Alpha"
+        },
+        {
+          "action": "unavailable",
+          "value": true
+        },
+        {
+          "action": "foreign",
+          "value": "Beta"
+        },
+        {
+          "action": "changed",
+          "value": null
+        },
+        {
+          "action": "advance",
+          "value": 90000
+        },
+        {
+          "action": "unavailable",
+          "value": false
+        },
+        {
+          "action": "tick",
+          "value": null
+        }
+      ],
+      "text": "Beta",
+      "pending": false,
+      "clears": 0
+    },
+    {
+      "name": "new duration applies next time",
+      "steps": [
+        {
+          "action": "policy",
+          "value": 30
+        },
+        {
+          "action": "copy",
+          "value": "Alpha"
+        },
+        {
+          "action": "policy",
+          "value": 120
+        },
+        {
+          "action": "advance",
+          "value": 30000
+        },
+        {
+          "action": "tick",
+          "value": null
+        }
+      ],
+      "text": null,
+      "pending": false,
+      "clears": 1
+    },
+    {
+      "name": "switch off cancels",
+      "steps": [
+        {
+          "action": "policy",
+          "value": 30
+        },
+        {
+          "action": "copy",
+          "value": "Alpha"
+        },
+        {
+          "action": "policy",
+          "value": 0
+        },
+        {
+          "action": "advance",
+          "value": 30000
+        },
+        {
+          "action": "tick",
+          "value": null
+        }
+      ],
+      "text": "Alpha",
+      "pending": false,
+      "clears": 0
+    },
+    {
+      "name": "sleep elapsed",
+      "steps": [
+        {
+          "action": "policy",
+          "value": 60
+        },
+        {
+          "action": "copy",
+          "value": "Alpha"
+        },
+        {
+          "action": "advance",
+          "value": 3600000
+        },
+        {
+          "action": "tick",
+          "value": null
+        }
+      ],
+      "text": null,
+      "pending": false,
+      "clears": 1
+    },
+    {
+      "name": "unicode exact text",
+      "steps": [
+        {
+          "action": "policy",
+          "value": 120
+        },
+        {
+          "action": "copy",
+          "value": "Żółw Las-密碼"
+        },
+        {
+          "action": "advance",
+          "value": 120000
+        },
+        {
+          "action": "tick",
+          "value": null
+        }
+      ],
+      "text": null,
+      "pending": false,
+      "clears": 1
+    },
+    {
+      "name": "failed clear deferred",
+      "steps": [
+        {
+          "action": "policy",
+          "value": 30
+        },
+        {
+          "action": "copy",
+          "value": "Alpha"
+        },
+        {
+          "action": "fail_clear",
+          "value": true
+        },
+        {
+          "action": "advance",
+          "value": 30000
+        },
+        {
+          "action": "tick",
+          "value": null
+        }
+      ],
+      "text": "Alpha",
+      "pending": true,
+      "clears": 0
+    },
+    {
+      "name": "retry after clear failure",
+      "steps": [
+        {
+          "action": "policy",
+          "value": 30
+        },
+        {
+          "action": "copy",
+          "value": "Alpha"
+        },
+        {
+          "action": "fail_clear",
+          "value": true
+        },
+        {
+          "action": "advance",
+          "value": 30000
+        },
+        {
+          "action": "tick",
+          "value": null
+        },
+        {
+          "action": "fail_clear",
+          "value": false
+        },
+        {
+          "action": "tick",
+          "value": null
+        }
+      ],
+      "text": null,
+      "pending": false,
+      "clears": 1
+    },
+    {
+      "name": "invalid duration defaults off",
+      "steps": [
+        {
+          "action": "policy",
+          "value": 15
+        },
+        {
+          "action": "copy",
+          "value": "Alpha"
+        },
+        {
+          "action": "advance",
+          "value": 30000
+        },
+        {
+          "action": "tick",
+          "value": null
+        }
+      ],
+      "text": "Alpha",
+      "pending": false,
+      "clears": 0
+    },
+    {
+      "name": "empty copy leaves pending entry",
+      "steps": [
+        {
+          "action": "policy",
+          "value": 30
+        },
+        {
+          "action": "copy",
+          "value": "Alpha"
+        },
+        {
+          "action": "copy",
+          "value": ""
+        },
+        {
+          "action": "advance",
+          "value": 30000
+        },
+        {
+          "action": "tick",
+          "value": null
+        }
+      ],
+      "text": null,
+      "pending": false,
+      "clears": 1
+    }
+  ]
+}

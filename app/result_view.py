@@ -1,6 +1,6 @@
 """Scrollable plain-text result; transcription enlarges the original text."""
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import (
     QFont,
     QFontDatabase,
@@ -8,10 +8,12 @@ from PySide6.QtGui import (
     QTextCharFormat,
     QTextCursor,
 )
-from PySide6.QtWidgets import QApplication, QMenu, QTextEdit
+from PySide6.QtWidgets import QMenu, QTextEdit
 
 
 class ResultView(QTextEdit):
+    copyRequested = Signal()
+
     def __init__(self):
         super().__init__()
         self._raw = ""
@@ -59,7 +61,7 @@ class ResultView(QTextEdit):
 
     def copy(self):
         if self.text():
-            QApplication.clipboard().setText(self.text())
+            self.copyRequested.emit()
 
     def keyPressEvent(self, event):
         if event.matches(QKeySequence.Copy):

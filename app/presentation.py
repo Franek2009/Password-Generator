@@ -5,6 +5,7 @@ import json
 from PySide6.QtCore import QLocale, QSettings
 
 from app.advanced_rules import AdvancedRules
+from app.clipboard import CLEAR_SECONDS
 from app.resources import resource_path
 
 UI = json.loads(resource_path("data", "ui.json").read_text(encoding="utf-8"))
@@ -12,6 +13,7 @@ DEFAULTS = {
     "language": "system",
     "theme": "system",
     "auto_copy": False,
+    "clipboard_clear_seconds": 0,
     "transcription": False,
     "exclude_similar": False,
     "mode": 0,
@@ -48,6 +50,7 @@ class Preferences:
             "language": ["system", "pl", "en"],
             "theme": ["system", "light", "dark"],
             "mode": [0, 1],
+            "clipboard_clear_seconds": CLEAR_SECONDS,
             "length": range(8, 65),
             "words": range(2, 9),
             "separator": ["-", "_", ".", " ", "/", "|", "Random"],
