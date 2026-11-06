@@ -67,6 +67,10 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
     var selectedPreset by mutableStateOf("")
         private set
     val presets get() = Presets.builtins() + customPresets
+    val presetModified: Boolean get() {
+        val preset=customPresets.find { it.id==selectedPreset } ?: return false
+        return runCatching { Presets.parameters(state)!=preset.config }.getOrDefault(true)
+    }
     private var advancedReadError = false
     var state by mutableStateOf(readPreferences())
         private set
@@ -98,8 +102,18 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private suspend fun persistPresets(proposed: List<Preset>): Boolean = withContext(Dispatchers.IO) {
-        try { preferences.edit().putString("presets_v2",Presets.encode(proposed)).commit() }
-        catch(_:RuntimeException) { false }
+        val previous=preferences.all["presets_v2"]
+        val saved=try { preferences.edit().putString("presets_v2",Presets.encode(proposed)).commit() }
+            catch(_:RuntimeException) { false }
+        if(!saved) {
+            // commit() updates the process cache even when the disk write fails.
+            runCatching {
+                preferences.edit().apply {
+                    if(previous is String) putString("presets_v2",previous) else remove("presets_v2")
+                }.commit()
+            }
+        }
+        saved
     }
 
     fun savePreset(name: String) {
@@ -123,6 +137,45 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
             } catch(_:GenerationCancelled) { /* Explicit config change, not invalid rules. */ }
               catch(error:GenerationException) { message=error.code }
             finally { working=false }
+        }
+    }
+
+    fun updatePreset(id: String) {
+        if(working)return
+        if(presetWriteBlocked) { message="preset_version";return }
+        val snapshot=state
+        val request=revision
+        val replacement=try { Presets.update(id,snapshot,customPresets) }
+            catch(error:Exception) { message=errorCode(error);return }
+        working=true
+        viewModelScope.launch {
+            try {
+                validateFeasibility(snapshot,request)
+                if(snapshot.mode==PasswordMode.HUMAN && snapshot.wordlist.isNotEmpty()) {
+                    withContext(Dispatchers.IO) { readWords(Uri.parse(snapshot.wordlist)) }
+                }
+                if(request==revision) {
+                    val proposed=customPresets.map { if(it.id==id) replacement else it }
+                    if(persistPresets(proposed)) customPresets=proposed else message="settings_write"
+                }
+            } catch(error:Exception) {
+                if(error is CancellationException)throw error
+                if(error !is GenerationCancelled && request==revision)message=errorCode(error)
+            } finally { working=false }
+        }
+    }
+
+    fun renamePreset(id: String, name: String) {
+        if(working)return
+        if(presetWriteBlocked) { message="preset_version";return }
+        val replacement=try { Presets.rename(id,name,customPresets) }
+            catch(error:IllegalArgumentException) { message=error.message?:"preset_invalid";return }
+        val proposed=customPresets.map { if(it.id==id) replacement else it }
+        working=true
+        viewModelScope.launch {
+            try {
+                if(persistPresets(proposed)) customPresets=proposed else message="settings_write"
+            } finally { working=false }
         }
     }
 
@@ -202,7 +255,7 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
         val next = transform(state)
         if (configFor(next) != configFor(state) || next.advanced != state.advanced || next.wordlist != state.wordlist) {
             revision++
-            selectedPreset = ""
+            if(customPresets.none { it.id==selectedPreset }) selectedPreset = ""
             validationMessage = null
         }
         state = if (next.mode != state.mode) next.copy(password = "") else next

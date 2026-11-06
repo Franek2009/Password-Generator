@@ -161,3 +161,79 @@ def test_unknown_validation_schema_is_never_treated_as_legacy():
     for version in (0, 3, True, "2"):
         with pytest.raises(ValueError, match="preset_version"):
             validate_parameters(builtins()[0].config, version=version)
+
+
+def test_edit_roundtrip_identity_order_and_secret_whitelist(tmp_path):
+    settings = QSettings(str(tmp_path / "edit.ini"), QSettings.IniFormat)
+    store = PresetStore(settings)
+    first = store.save("First", PasswordConfig())
+    second = store.save("Second", PasswordConfig())
+    updated = store.update(first.id, PasswordConfig(length=32, exclude_similar=True))
+    renamed = store.rename(first.id, "  FIRST renamed  ")
+    assert updated.id == renamed.id == first.id
+    assert renamed.name == "FIRST renamed"
+    assert renamed.config == updated.config
+    assert PresetStore(settings).custom == [renamed, second]
+    assert json.loads(settings.value("presets_v2"))["version"] == 2
+    assert "password" not in renamed.config
+    assert store.rename(first.id, renamed.name) == renamed
+
+
+def test_edit_rejects_missing_builtin_duplicates_and_invalid_config(tmp_path):
+    settings = QSettings(str(tmp_path / "edit.ini"), QSettings.IniFormat)
+    store = PresetStore(settings)
+    first = store.save("First", PasswordConfig())
+    store.save("Second", PasswordConfig())
+    before = settings.value("presets_v2")
+    for identity in ["missing", "standard", "strong", "phrase"]:
+        with pytest.raises(ValueError):
+            store.update(identity, PasswordConfig())
+        with pytest.raises(ValueError):
+            store.rename(identity, "Another")
+    for name in ["SECOND", "Standard", "", "bad\nname"]:
+        with pytest.raises(ValueError):
+            store.rename(first.id, name)
+    with pytest.raises(ValueError):
+        store.update(first.id, PasswordConfig(length=65))
+    assert settings.value("presets_v2") == before
+    assert store.custom[0] == first
+
+
+def test_failed_edits_preserve_memory_and_future_schema(tmp_path, monkeypatch):
+    settings = QSettings(str(tmp_path / "edit.ini"), QSettings.IniFormat)
+    store = PresetStore(settings)
+    first = store.save("First", PasswordConfig())
+    original = settings.value("presets_v2")
+    monkeypatch.setattr(settings, "status", lambda: QSettings.AccessError)
+    for edit in [
+        lambda: store.rename(first.id, "Other"),
+        lambda: store.update(first.id, PasswordConfig(length=32)),
+    ]:
+        with pytest.raises(ValueError, match="settings_write"):
+            edit()
+        assert store.custom == [first]
+        assert settings.value("presets_v2") == original
+        assert PresetStore(settings).custom == [first]
+    store.write_blocked = True
+    with pytest.raises(ValueError, match="preset_version"):
+        store.rename(first.id, "Other")
+    assert store.custom == [first]
+
+
+@pytest.mark.parametrize("operation", ["rename", "update"])
+def test_edit_legacy_presets_migrates_without_rewriting_original(tmp_path, operation):
+    from pathlib import Path
+
+    settings = QSettings(str(tmp_path / "legacy-edit.ini"), QSettings.IniFormat)
+    original = (Path(__file__).parent / "fixtures/legacy_presets_v1.json").read_text()
+    settings.setValue("presets", original)
+    store = PresetStore(settings)
+    identity = store.custom[0].id
+    if operation == "rename":
+        edited = store.rename(identity, "Renamed legacy")
+    else:
+        edited = store.update(identity, PasswordConfig(length=32))
+    assert settings.value("presets") == original
+    assert json.loads(settings.value("presets_v2"))["version"] == 2
+    assert PresetStore(settings).custom[0] == edited
+    assert edited.id == identity

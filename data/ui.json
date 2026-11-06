@@ -93,7 +93,11 @@
       "settings_read": "Cannot read saved advanced settings. Review the rules.",
       "settings_write": "Cannot save settings. Changes were not confirmed.",
       "preset_version": "Presets use an unsupported version. Saving is blocked.",
-      "working": "Working…"
+      "working": "Working…",
+      "preset_update": "Update preset…",
+      "preset_rename": "Rename preset…",
+      "preset_modified": "modified",
+      "preset_confirm_update": "Replace the saved settings of preset “{name}” with the current generator settings?"
     },
     "pl": {
       "random": "Losowe hasło",
@@ -188,7 +192,11 @@
       "settings_read": "Nie można odczytać zapisanych reguł. Sprawdź ustawienia.",
       "settings_write": "Nie można zapisać ustawień. Zmiany nie zostały potwierdzone.",
       "preset_version": "Presety używają nieobsługiwanej wersji. Zapis jest zablokowany.",
-      "working": "Przetwarzanie…"
+      "working": "Przetwarzanie…",
+      "preset_update": "Zaktualizuj preset…",
+      "preset_rename": "Zmień nazwę…",
+      "preset_modified": "zmodyfikowany",
+      "preset_confirm_update": "Zastąpić zapisane ustawienia presetu „{name}” bieżącymi ustawieniami generatora?"
     }
   },
   "palettes": {

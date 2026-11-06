@@ -209,6 +209,36 @@ class PresetStore:
         self.custom = proposed
         return preset
 
+    def update(self, identity, config):
+        preset = self._custom(identity)
+        replacement = Preset(
+            preset.id, preset.name, validate_parameters(parameters(config))
+        )
+        self._replace(replacement)
+        return replacement
+
+    def rename(self, identity, name):
+        preset = self._custom(identity)
+        name = preset_name(name)
+        if name.upper() in RESERVED_NAMES or any(
+            p.id != identity and p.name.upper() == name.upper() for p in self.custom
+        ):
+            raise ValueError("preset_duplicate")
+        replacement = Preset(preset.id, name, preset.config)
+        self._replace(replacement)
+        return replacement
+
+    def _custom(self, identity):
+        preset = next((p for p in self.custom if p.id == identity), None)
+        if preset is None:
+            raise ValueError("preset_invalid")
+        return preset
+
+    def _replace(self, preset):
+        proposed = [preset if p.id == preset.id else p for p in self.custom]
+        self._write(proposed)
+        self.custom = proposed
+
     def delete(self, identity):
         if identity not in {p.id for p in self.custom}:
             raise ValueError("preset_invalid")
@@ -228,10 +258,21 @@ class PresetStore:
             },
             ensure_ascii=False,
         )
+        existed = self.settings.contains(self.key)
+        previous = self.settings.value(self.key)
         try:
             self.settings.setValue(self.key, payload)
             self.settings.sync()
             if self.settings.status() != QSettings.NoError:
                 raise ValueError("settings_write")
-        except (OSError, RuntimeError) as error:
+        except (OSError, RuntimeError, ValueError) as error:
+            # QSettings can update its cache before reporting a disk failure.
+            try:
+                if existed:
+                    self.settings.setValue(self.key, previous)
+                else:
+                    self.settings.remove(self.key)
+                self.settings.sync()
+            except (OSError, RuntimeError):
+                pass
             raise ValueError("settings_write") from error

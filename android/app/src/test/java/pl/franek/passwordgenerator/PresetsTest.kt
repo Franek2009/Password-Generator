@@ -5,6 +5,43 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PresetsTest {
+    @Test fun editsOfMigratedPresetsRetainVersionTwoAndIdentity() {
+        val raw=javaClass.getResource("/legacy_presets_v1.json")!!.readText()
+        val presets=Presets.decode(raw,1).first
+        val first=presets.first()
+        val updated=Presets.update(first.id,UiState(length=32),presets)
+        val renamed=Presets.rename(first.id,"Renamed legacy",listOf(updated)+presets.drop(1))
+        val encoded=Presets.encode(listOf(renamed)+presets.drop(1))
+        assertEquals(2,JSONObject(encoded).getInt("version"))
+        assertEquals(renamed,Presets.decode(encoded).first.first())
+        assertEquals(first.id,renamed.id)
+        assertEquals(32,renamed.config["length"])
+    }
+
+    @Test fun editsPreserveIdentityOrderAndOnlyWhitelistedSettings() {
+        val first=Presets.create("First",UiState(),emptyList())
+        val second=Presets.create("Second",UiState(),listOf(first))
+        val existing=listOf(first,second)
+        val updated=Presets.update(first.id,UiState(length=32,excludeSimilar=true,password="memory-only"),existing)
+        val renamed=Presets.rename(first.id,"  FIRST renamed  ",listOf(updated,second))
+        assertEquals(first.id,renamed.id)
+        assertEquals("FIRST renamed",renamed.name)
+        assertEquals(updated.config,renamed.config)
+        assertEquals(32,renamed.config["length"])
+        assertEquals(listOf(renamed,second) to false,Presets.decode(Presets.encode(listOf(renamed,second))))
+        assertFalse(Presets.encode(listOf(renamed)).contains("memory-only"))
+        assertEquals(renamed,Presets.rename(renamed.id,renamed.name,listOf(renamed,second)))
+        for(id in listOf("missing","standard","strong","phrase")) {
+            try { Presets.update(id,UiState(),existing+Presets.builtins());fail() } catch(_:IllegalArgumentException) { }
+            try { Presets.rename(id,"Other",existing+Presets.builtins());fail() } catch(_:IllegalArgumentException) { }
+        }
+        for(name in listOf("SECOND","Standard","","bad\nname")) {
+            try { Presets.rename(first.id,name,existing);fail() } catch(_:IllegalArgumentException) { }
+        }
+        try { Presets.update(first.id,UiState(length=65),existing);fail() } catch(_:IllegalArgumentException) { }
+        assertEquals(first,existing[0])
+    }
+
     @Test fun sharedContractAndActiveModeRestoration() {
         val root = JSONObject(javaClass.getResource("/preset_contract.json")!!.readText())
         assertEquals(root.getString("similar_characters"), PasswordGenerator.SIMILAR_CHARACTERS)

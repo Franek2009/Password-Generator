@@ -449,7 +449,8 @@ def test_saved_preset_restores_exclusion_and_restarts(window, qtbot):
     window.exclude_similar_checkbox.setChecked(True)
     preset = window.save_preset("Travel")
     window.length_spin.setValue(16)
-    assert window.preset_combo.currentData() == ""
+    assert window.preset_combo.currentData() == preset.id
+    assert window.update_preset_action.isEnabled()
     replacement = MainWindow(Preferences(window.preferences.store))
     qtbot.addWidget(replacement)
     replacement.apply_preset(replacement.presets.custom[0])
