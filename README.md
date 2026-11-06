@@ -215,8 +215,9 @@ Password generation uses Python's `secrets` module instead of the standard
 `random` module. `secrets` is designed for values that need to be
 unpredictable, including passwords and security tokens.
 
-Random password mode also ensures that every enabled character set is
-represented when the configured length permits it.
+With advanced rules disabled, random password mode ensures that every enabled
+character set is represented when the configured length permits it. Advanced
+mode follows the configured minimum counts.
 
 Generated passwords are not intentionally persisted by the application.
 Remember that copying a password places it in the operating system clipboard,
